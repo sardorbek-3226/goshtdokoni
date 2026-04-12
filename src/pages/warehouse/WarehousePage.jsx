@@ -54,19 +54,32 @@ useEffect(() => {
 }, []);
 
 // Yuk qo'shish funksiyasi
+// Yuk qo'shish funksiyasi
 const handleAddStock = async (e) => {
   e.preventDefault();
+  
+  // Tekshiruv: agar mahsulot tanlanmagan yoki vazn yozilmagan bo'lsa
+  if (!selectedId || !weight) {
+    toast.warning("Iltimos, mahsulot va vaznni kiriting!");
+    return;
+  }
+
   const data = { product_id: selectedId, weight: parseFloat(weight) };
 
   try {
     await apiService.addStock(data);
     toast.success("Ombor yangilandi!");
     
-    // Ro'yxatni yangilab qo'yish
+    // --- MANA SHU JOYDA FORMANI TOZALAYMIZ ---
+    setSelectedId(""); // Tanlangan mahsulotni "Tanlang..." holatiga qaytaradi
+    setWeight("");    // Vazn maydonini bo'shatadi
+    // ----------------------------------------
+
+    // Ro'yxatni qayta yuklab, yangi qoldiqlarni ko'rsatish
     const res = await apiService.getWarehouseStock();
     setProducts(res.data);
   } catch (err) {
-    toast.error("Xatolik!");
+    toast.error("Xatolik yuz berdi!");
   }
 };
   return (

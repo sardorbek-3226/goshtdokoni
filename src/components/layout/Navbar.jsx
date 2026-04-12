@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Bell, Menu, X, User, Package, LogOut, 
   LayoutDashboard, ShoppingCart, BarChart3, 
-  Boxes // Mahsulotlar uchun ikonka
+  Boxes, // Mahsulotlar uchun ikonka
+  Users
 } from "lucide-react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
@@ -32,6 +33,7 @@ export default function Navbar() {
     { name: "Mahsulotlar", path: "/products", icon: <Boxes size={18} /> }, // Qaytarildi
     { name: "Ombor", path: "/warehouse", icon: <Package size={18} /> },
     { name: "Sotuv", path: "/sales", icon: <ShoppingCart size={18} /> },
+    { name: "Nasiya", path: "/debts", icon: <Users size={18} /> },
     { name: "Hisobotlar", path: "/reports", icon: <BarChart3 size={18} /> },
   ];
 

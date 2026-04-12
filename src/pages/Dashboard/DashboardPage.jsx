@@ -1,207 +1,152 @@
 import React, { useState, useEffect } from "react";
-import {
-  TrendingUp,
-  Hash, // Odamlar o'rniga raqam (sanoq) ikonkasini ishlatamiz
-  Package,
-  ShoppingCart,
-  ArrowUpRight,
-  ArrowDownRight,
-  Clock,
-  Receipt, // Xaridlar uchun chek ikonasi
-} from "lucide-react";
 import { apiService } from "../../api/api";
+import { 
+  TrendingUp, 
+  Wallet, 
+  CreditCard, 
+  UserCircle, 
+  Clock, 
+  ShoppingBag,
+  BadgeDollarSign
+} from "lucide-react";
 
 export default function DashboardPage() {
-  // 1. Statelar
-  const [statsData, setStatsData] = useState([
-    {
-      title: "Bugungi Sotuv",
-      value: "4,250,000",
-      subValue: "+12.5%",
-      trend: "up",
-      icon: <ShoppingCart size={24} />,
-      color: "bg-violet-600",
-    },
-    {
-      title: "Xaridlar Soni",
-      value: "48 ta",
-      subValue: "+3 ta yangi",
-      trend: "up",
-      icon: <Receipt size={24} />,
-      color: "bg-blue-600",
-    }, // O'zgartirilgan qism
-    {
-      title: "Ombor Qoldig'i",
-      value: "850.4 kg",
-      subValue: "-50 kg bugun",
-      trend: "down",
-      icon: <Package size={24} />,
-      color: "bg-emerald-600",
-    },
-    {
-      title: "Sof Foyda",
-      value: "1,120,000",
-      subValue: "+8.2%",
-      trend: "up",
-      icon: <TrendingUp size={24} />,
-      color: "bg-fuchsia-600",
-    },
-  ]);
+  const [stats, setStats] = useState([]);
+  const [recentSales, setRecentSales] = useState([]);
+  const [period, setPeriod] = useState('bugun');
 
-  const recentSales = [
-    {
-      id: 1,
-      customer: "Alisher I.",
-      product: "File (Tovuq)",
-      amount: "5.5 kg",
-      total: "176,000",
-      time: "10 min oldin",
-    },
-    {
-      id: 2,
-      customer: "Jahongir O.",
-      product: "Pusti mag'iz",
-      amount: "2.0 kg",
-      total: "240,000",
-      time: "25 min oldin",
-    },
-    {
-      id: 3,
-      customer: "Nodir B.",
-      product: "Golen",
-      amount: "10.0 kg",
-      total: "300,000",
-      time: "1 soat oldin",
-    },
-  ];
-
-  // 2. Effektlar
   useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const res = await apiService.getStats();
-        // Agar backenddan ma'lumot kelsa, statni yangilaymiz
-        // setStatsData(res.data);
-      } catch (err) {
-        console.error("Statistika yuklashda xato:", err);
-      }
-    };
-    fetchStats();
-  }, []);
+    loadData();
+  }, [period]);
+
+  const loadData = async () => {
+    try {
+      const [statsRes, salesRes] = await Promise.all([
+        apiService.getStats(period),
+        apiService.getRecentSales()
+      ]);
+      setStats(statsRes.data);
+      setRecentSales(salesRes.data);
+    } catch (error) {
+      console.error("Ma'lumot yuklashda xato:", error);
+    }
+  };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      {/* 1. STATISTIKA KARTALARI */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {statsData.map((stat, index) => (
-          <div
-            key={index}
-            className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div
-                className={`w-12 h-12 ${stat.color} text-white rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110`}
-              >
-                {stat.icon}
+    <div className="space-y-6 animate-in fade-in duration-500 pb-10">
+      
+      {/* HEADER */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-4 pt-4">
+        <div>
+          <h1 className="text-3xl font-black text-slate-800 uppercase italic leading-none">Hisobotlar</h1>
+          <p className="text-slate-400 text-[10px] font-bold mt-2 tracking-[0.2em]">SAVDO VA FOYDA TAHLILI</p>
+        </div>
+
+        <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-100">
+          {['bugun', 'hafta', 'oy'].map((p) => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-6 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${
+                period === p ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* STATS GRID - 5 TA BLOK */}
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 px-4">
+        {stats.map((stat, index) => (
+          <div key={index} className={`p-6 rounded-[2.5rem] border shadow-sm relative overflow-hidden group transition-all hover:shadow-md ${
+            stat.title.includes('Foyda') ? 'bg-emerald-50 border-emerald-100' : 'bg-white border-slate-50'
+          }`}>
+            <div className="relative z-10">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 ${
+                stat.title.includes('Foyda') ? 'bg-emerald-500 text-white' :
+                stat.title.includes('Karta') ? 'bg-blue-500 text-white' :
+                stat.title.includes('Nasiya') ? 'bg-rose-500 text-white' : 
+                stat.title.includes('Savdo') ? 'bg-violet-500 text-white' : 'bg-slate-800 text-white'
+              }`}>
+                {stat.title.includes('Foyda') ? <BadgeDollarSign size={20} /> :
+                 stat.title.includes('Karta') ? <CreditCard size={20} /> :
+                 stat.title.includes('Nasiya') ? <UserCircle size={20} /> : <TrendingUp size={20} />}
               </div>
-              <div
-                className={`flex items-center gap-1 text-xs font-black ${
-                  stat.trend === "up" ? "text-emerald-500" : "text-rose-500"
-                }`}
-              >
-                {stat.subValue}
-                {stat.trend === "up" ? (
-                  <ArrowUpRight size={14} />
-                ) : (
-                  <ArrowDownRight size={14} />
-                )}
-              </div>
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">
-                {stat.title}
-              </p>
-              <h3 className="text-2xl font-black text-slate-800 tracking-tighter">
-                {stat.value}
-                {stat.title === "Bugungi Sotuv" ||
-                stat.title === "Sof Foyda" ? (
-                  <span className="text-[10px] text-slate-300 font-bold uppercase ml-1">
-                    uzs
-                  </span>
-                ) : null}
+              
+              <p className={`text-[9px] font-black uppercase tracking-widest ${
+                stat.title.includes('Foyda') ? 'text-emerald-600' : 'text-slate-400'
+              }`}>{stat.title}</p>
+              
+              <h3 className={`text-xl font-black mt-1 tracking-tighter ${
+                stat.title.includes('Foyda') ? 'text-emerald-700' : 'text-slate-800'
+              }`}>
+                {stat.value} <small className="text-[10px] font-bold opacity-50 uppercase">uzs</small>
               </h3>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* 2. SOTUV GRAFIKASI O'RNI */}
-        <div className="lg:col-span-2 bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-32 h-32 bg-violet-50 rounded-full -mr-16 -mt-16 opacity-50"></div>
-          <div className="relative flex justify-between items-center mb-8">
-            <h3 className="text-xl font-black text-slate-800 italic">
-              Sotuv Dinamikasi
-            </h3>
-            <select className="bg-slate-50 border-none outline-none text-[10px] font-black uppercase tracking-widest px-4 py-2.5 rounded-xl text-slate-500 cursor-pointer">
-              <option>Oxirgi 7 kun</option>
-              <option>Oxirgi 30 kun</option>
-            </select>
-          </div>
-
-          <div className="h-[300px] w-full bg-slate-50 rounded-[2rem] border border-dashed border-slate-200 flex items-center justify-center relative">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center mx-auto mb-3 shadow-sm">
-                <TrendingUp className="text-violet-600" size={28} />
-              </div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">
-                Grafik ma'lumotlari kutilmoqda...
-              </p>
+      {/* RECENT SALES TABLE */}
+      <div className="mx-4 bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-slate-900 rounded-2xl flex items-center justify-center text-white">
+              <ShoppingBag size={20} />
             </div>
+            <h3 className="text-xl font-black uppercase italic text-slate-800">Oxirgi Sotuvlar</h3>
           </div>
         </div>
 
-        {/* 3. OXIRGI SOTUVLAR */}
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
-          <h3 className="text-xl font-black text-slate-800 mb-6 italic">
-            Oxirgi Sotuvlar
-          </h3>
-          <div className="space-y-6">
-            {recentSales.map((sale) => (
-              <div
-                key={sale.id}
-                className="flex items-center justify-between group cursor-pointer"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:bg-violet-600 group-hover:text-white transition-all">
-                    <Clock size={18} />
-                  </div>
-                  <div>
-                    <p className="text-sm font-black text-slate-700 group-hover:text-violet-600 transition-colors">
-                      {sale.customer}
-                    </p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">
-                      {sale.product} • {sale.amount}
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-black text-slate-900">
-                    {sale.total}{" "}
-                    <span className="text-[9px] text-slate-300 uppercase">
-                      uzs
-                    </span>
-                  </p>
-                  <p className="text-[10px] text-slate-400 font-medium italic">
-                    {sale.time}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-          <button className="w-full mt-8 py-4 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-violet-600 transition-all shadow-lg shadow-slate-200">
-            Barcha hisobotlar
-          </button>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="text-[10px] font-black text-slate-300 uppercase tracking-widest border-b border-slate-50">
+                <th className="px-8 py-5">Mijoz / Vaqt</th>
+                <th className="px-8 py-5">Mahsulot</th>
+                <th className="px-8 py-5 text-right">To'lov va Summa</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50 font-bold text-sm">
+              {recentSales.map((sale) => (
+                <tr key={sale.id} className="hover:bg-slate-50/50 transition-colors">
+                  <td className="px-8 py-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-[10px] font-black text-slate-500 uppercase">
+                        {sale.customer.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="text-slate-800 uppercase tracking-tight">{sale.customer}</div>
+                        <div className="text-[10px] text-slate-300 flex items-center gap-1 font-medium italic">
+                          <Clock size={10} /> {sale.time}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-8 py-5">
+                    <div className="text-slate-500 font-medium max-w-xs truncate uppercase text-[12px]">
+                      {sale.product}
+                    </div>
+                  </td>
+                  <td className="px-8 py-5 text-right">
+                    <div className="flex items-center justify-end gap-3">
+                      <span className={`text-[10px] font-black italic uppercase px-2 py-1 rounded-md ${
+                        sale.paymentDisplay.includes('Nasiya') ? 'text-rose-500 bg-rose-50' : 
+                        sale.paymentDisplay.includes('Karta') ? 'text-blue-500 bg-blue-50' : 'text-emerald-500 bg-emerald-50'
+                      }`}>
+                        {sale.paymentDisplay}
+                      </span>
+                      <span className="text-lg font-black text-slate-900 tracking-tighter">
+                        {sale.total} <small className="text-[10px] text-slate-300 uppercase">uzs</small>
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

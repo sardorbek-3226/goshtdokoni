@@ -16,7 +16,9 @@ import Dashboard from "./pages/Dashboard/DashboardPage";
 import ProductsPage from "./pages/products/ProductsPage";
 import WarehousePage from "./pages/warehouse/WarehousePage";
 import SalesPage from "./pages/sales/SalesPage";
-
+import DebtsPage from './pages/debts/DebtsPage';
+import ReportsPage from "./pages/reports/ReportsPage";
+import ProfilePage from "./pages/profile/ProfilePage"
 function App() {
   // Demo rejimida barcha sahifalar ochiq
   const isAuthenticated = true;
@@ -47,9 +49,11 @@ function App() {
             <Route path="/products" element={<ProductsPage />} />
             <Route path="/warehouse" element={<WarehousePage />} />
             <Route path="/sales" element={<SalesPage />} />
-
-            {/* Noto'g'ri link yozilsa, Dashboardga qaytaradi */}
+            <Route path="/debts" element={<DebtsPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/profile" element={<ProfilePage/>} />
             <Route path="*" element={<Navigate to="/" />} />
+
           </Routes>
         </main>
       </div>
