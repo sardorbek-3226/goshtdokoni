@@ -5,58 +5,108 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 
-// React Toastify importlari
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-
-// Komponentlarni import qilish
 import Navbar from "./components/layout/Navbar";
-import Dashboard from "./pages/Dashboard/DashboardPage";
+import LoginPage from "./pages/auth/LoginPage";
+import DashboardPage from "./pages/Dashboard/DashboardPage";
 import ProductsPage from "./pages/products/ProductsPage";
 import WarehousePage from "./pages/warehouse/WarehousePage";
 import SalesPage from "./pages/sales/SalesPage";
-import DebtsPage from './pages/debts/DebtsPage';
-import ReportsPage from "./pages/reports/ReportsPage";
+import ReportsPage from "./pages/reports/ReportsPage"
+import DebtsPage from "./pages/debts/DebtsPage"
 import ProfilePage from "./pages/profile/ProfilePage"
+
+
 function App() {
-  // Demo rejimida barcha sahifalar ochiq
-  const isAuthenticated = true;
+  const isAuthenticated = () => {
+    return localStorage.getItem("isLoggedIn") === "true";
+  };
+
+  const ProtectedRoute = ({ children }) => {
+    if (!isAuthenticated()) {
+      return <Navigate to="/login" replace />;
+    }
+
+    return (
+      <div className="min-h-screen bg-slate-50 font-sans">
+        <Navbar />
+        <main>{children}</main>
+      </div>
+    );
+  };
 
   return (
     <Router>
-      <div className="min-h-screen bg-slate-50 text-slate-900 font-sans">
-        {/* Bildirishnomalar uchun Container */}
-        <ToastContainer
-          position="bottom-right"
-          autoClose={3000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="colored"
+      <Toaster position="top-center" reverseOrder={false} />
+
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+
+        <Route
+          path="/"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
         />
 
-        {/* Navbar faqat login bo'lganda ko'rinadi */}
-        {isAuthenticated && <Navbar />}
+        <Route
+          path="/products"
+          element={
+            <ProtectedRoute>
+              <ProductsPage />
+            </ProtectedRoute>
+          }
+        />
 
-        <main className="max-w-[1440px] mx-auto px-4 md:px-8 py-8">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/products" element={<ProductsPage />} />
-            <Route path="/warehouse" element={<WarehousePage />} />
-            <Route path="/sales" element={<SalesPage />} />
-            <Route path="/debts" element={<DebtsPage />} />
-            <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/profile" element={<ProfilePage/>} />
-            <Route path="*" element={<Navigate to="/" />} />
+        <Route
+          path="/warehouse"
+          element={
+            <ProtectedRoute>
+              <WarehousePage />
+            </ProtectedRoute>
+          }
+        />
 
-          </Routes>
-        </main>
-      </div>
+        <Route
+          path="/sales"
+          element={
+            <ProtectedRoute>
+              <SalesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/debts"
+          element={
+            <ProtectedRoute>
+              <DebtsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <ReportsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
     </Router>
   );
 }

@@ -116,5 +116,31 @@ export const apiService = {
     return Promise.resolve({ data: recent });
   },
 
-  getDebtors: () => Promise.resolve({ data: JSON.parse(localStorage.getItem('debts') || '[]') })
+  getDebtors: () => Promise.resolve({ data: JSON.parse(localStorage.getItem('debts') || '[]') }),
+  // api.js
+
+  // LOGIN FUNKSIYASI
+  login: async (credentials) => {
+    // Kelajakda bu yerda: return axios.post('/api/login', credentials) bo'ladi
+    const { username, password } = credentials;
+
+    // Simulyatsiya: Haqiqiy backend bo'lganda bu qism serverdan keladi
+    if (username === 'admin' && password === '12345') {
+      const mockToken = "meat-pos-token-777"; // Backenddan keladigan JWT token simulyatsiyasi
+      localStorage.setItem('isLoggedIn', 'true');
+      localStorage.setItem('token', mockToken);
+      return { success: true, user: { name: 'Admin', role: 'owner' } };
+    } else {
+      throw new Error("Login yoki parol xato!");
+    }
+  },
+
+  // LOGOUT
+  logout: () => {
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('token');
+    window.location.href = '/login';
+  },
+
+  // Boshqa barcha funksiyalar (getWarehouseStock, createSale va h.k.) pastdan davom etadi...
 };

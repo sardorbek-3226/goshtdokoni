@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, User, Eye, EyeOff, LogIn } from "lucide-react";
-import { toast } from 'react-toastify';
+import { toast } from 'react-hot-toast';
+import { Lock, User, LogIn, ShieldCheck } from 'lucide-react';
 import { apiService } from '../../api/api';
 
 export default function LoginPage() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({ username: '', password: '' });
   const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState({ username: '', password: '' });
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
@@ -15,98 +14,82 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Backend api ulanishi (apiService da login funksiyasi bo'lishi kerak)
-      // const res = await apiService.login(formData);
-      
-      // Hozircha simulyatsiya qilamiz:
-      if(formData.username === 'admin' && formData.password === '12345') {
-        toast.success("Xush kelibsiz!");
-        localStorage.setItem('token', 'fake-jwt-token'); // Kirganini belgilash
-        navigate('/'); // Dashboardga yuborish
-      } else {
-        toast.error("Login yoki parol xato!");
+      const response = await apiService.login(formData);
+      if (response.success) {
+        toast.success("Tizimga muvaffaqiyatli kirdingiz!");
+        navigate('/'); // Asosiy sahifaga o'tish
       }
-    } catch (err) {
-      toast.error("Server bilan aloqa yo'q!");
+    } catch (error) {
+      toast.error(error.message || "Xatolik yuz berdi");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-[3rem] border border-slate-100 shadow-2xl shadow-slate-200/50 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6 font-sans">
+      <div className="bg-white w-full max-w-md rounded-[3rem] p-10 shadow-2xl space-y-8 animate-in fade-in zoom-in duration-300">
         
-        {/* Dekorativ element */}
-        <div className="absolute -top-10 -right-10 w-32 h-32 bg-violet-600/5 rounded-full"></div>
-
-        <div className="text-center space-y-2 relative">
-          <div className="w-16 h-16 bg-violet-600 rounded-2xl flex items-center justify-center text-white mx-auto shadow-lg shadow-violet-200 mb-4">
-            <Lock size={30} />
+        {/* LOGO QISMI */}
+        <div className="text-center space-y-4">
+          <div className="bg-slate-900 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto shadow-2xl shadow-slate-500/20">
+            <ShieldCheck className="text-emerald-500" size={40} />
           </div>
-          <h2 className="text-3xl font-black text-slate-800 italic uppercase tracking-tighter">
-            Go'sht<span className="text-violet-600">Pro</span>
-          </h2>
-          <p className="text-sm text-slate-400 font-bold uppercase tracking-widest">Tizimga kirish</p>
+          <div>
+            <h1 className="text-3xl font-black uppercase italic tracking-tighter text-slate-900">
+              Meat<span className="text-emerald-500">POS</span>
+            </h1>
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">Boshqaruv Tizimi</p>
+          </div>
         </div>
 
-        <form onSubmit={handleLogin} className="mt-8 space-y-6">
-          <div className="space-y-4">
-            {/* Username */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Foydalanuvchi nomi</label>
-              <div className="relative">
-                <User className="absolute left-4 top-3.5 text-slate-300" size={18} />
-                <input
-                  type="text"
-                  required
-                  value={formData.username}
-                  onChange={(e) => setFormData({...formData, username: e.target.value})}
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3.5 pl-12 pr-4 font-bold text-slate-700 focus:border-violet-500 outline-none transition-all"
-                  placeholder="admin"
-                />
-              </div>
-            </div>
-
-            {/* Password */}
-            <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Parol</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-3.5 text-slate-300" size={18} />
-                <input
-                  type={showPassword ? "text" : "password"}
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl py-3.5 pl-12 pr-12 font-bold text-slate-700 focus:border-violet-500 outline-none transition-all"
-                  placeholder="••••••••"
-                />
-                <button 
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-3.5 text-slate-300 hover:text-violet-600"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
+        {/* FORMA */}
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase text-slate-400 ml-5 block">Foydalanuvchi nomi</label>
+            <div className="relative">
+              <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+              <input 
+                type="text" 
+                required
+                value={formData.username}
+                onChange={(e) => setFormData({...formData, username: e.target.value})}
+                className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 pl-14 pr-5 font-bold outline-none focus:border-slate-900 focus:bg-white transition-all"
+                placeholder="admin"
+              />
             </div>
           </div>
 
-          <button
-            type="submit"
+          <div className="space-y-1">
+            <label className="text-[10px] font-black uppercase text-slate-400 ml-5 block">Maxfiy Parol</label>
+            <div className="relative">
+              <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+              <input 
+                type="password" 
+                required
+                value={formData.password}
+                onChange={(e) => setFormData({...formData, password: e.target.value})}
+                className="w-full bg-slate-50 border-2 border-transparent rounded-2xl py-4 pl-14 pr-5 font-bold outline-none focus:border-slate-900 focus:bg-white transition-all"
+                placeholder="••••••••"
+              />
+            </div>
+          </div>
+
+          <button 
             disabled={loading}
-            className="group relative w-full flex justify-center py-4 px-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-violet-600 transition-all shadow-xl active:scale-95 disabled:opacity-70"
+            type="submit"
+            className="w-full bg-slate-900 text-white py-5 rounded-[2rem] font-black uppercase text-xs tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 hover:bg-black transition-all flex items-center justify-center gap-3"
           >
-            {loading ? "Tekshirilmoqda..." : (
-              <>
-                Kirish <LogIn className="ml-2" size={16} />
-              </>
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+            ) : (
+              <><LogIn size={18} /> Tizimga kirish</>
             )}
           </button>
         </form>
 
-        <p className="text-center text-[10px] text-slate-300 font-bold uppercase tracking-widest pt-4">
-          © 2026 Go'shtPro Business Solutions
+        <p className="text-center text-[9px] font-bold text-slate-300 uppercase tracking-widest">
+          © 2024 MeatPOS Terminal v2.0
         </p>
       </div>
     </div>

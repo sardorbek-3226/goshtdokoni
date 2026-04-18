@@ -1,104 +1,120 @@
-import React, { useState, useEffect } from "react";
-import { apiService } from "../../api/api";
-import { Printer, Trash2, Wallet, CreditCard, UserCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import React, { useState, useEffect } from 'react';
+import { apiService } from '../../api/api';
+import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import { Wallet, CreditCard, UserCheck, ChevronLeft } from 'lucide-react';
 
 export default function SalesPage() {
   const [cart, setCart] = useState([]);
-  const [paymentMethod, setPaymentMethod] = useState("naqd");
-  const [customer, setCustomer] = useState({ name: "", phone: "" });
+  const [customerName, setCustomerName] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('naqd');
   const navigate = useNavigate();
 
   useEffect(() => {
-    setCart(JSON.parse(localStorage.getItem("active_cart") || "[]"));
-  }, []);
+    const savedCart = JSON.parse(localStorage.getItem('active_cart') || '[]');
+    if (savedCart.length === 0) {
+      toast.error("Savat bo'sh!");
+      navigate('/products');
+    }
+    setCart(savedCart);
+  }, [navigate]);
 
-  const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+  const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
-  const handleSale = async () => {
-    if (cart.length === 0) return toast.error("Savat bo'sh!");
-    if (paymentMethod === "nasiya" && (!customer.name || !customer.phone)) {
-       return toast.warning("Mijoz ma'lumotlarini to'ldiring!");
+  const handleCompleteSale = async () => {
+    if (paymentMethod === 'nasiya' && !customerName) {
+      return toast.error("Nasiya uchun mijoz ismini kiriting!");
     }
 
     const saleData = {
+      customer: { name: customerName || "Oddiy mijoz" },
       items: cart,
-      totalAmount: total,
+      totalAmount,
       paymentMethod,
-      customer: paymentMethod === 'nasiya' ? customer : { name: "Naqd Mijoz", phone: "" }
     };
 
-    await apiService.createSale(saleData);
-    toast.success("Sotuv muvaffaqiyatli yakunlandi!");
-    
-    // Chek chiqarish va tozalash
-    window.print();
-    localStorage.removeItem("active_cart");
-    navigate("/dashboard");
-  };
-
-  const removeItem = (id) => {
-    const updated = cart.filter(i => i.id !== id);
-    setCart(updated);
-    localStorage.setItem("active_cart", JSON.stringify(updated));
+    const res = await apiService.createSale(saleData);
+    if (res.success) {
+      toast.success("Sotuv muvaffaqiyatli yakunlandi!");
+      localStorage.removeItem('active_cart');
+      navigate('/');
+    }
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-10">
-      {/* CHAP TOMON - SAVAT */}
-      <div className="lg:col-span-2 space-y-6">
-        <h3 className="text-2xl font-black uppercase italic">Savatdagi mahsulotlar</h3>
-        {cart.length === 0 ? (
-          <div className="bg-slate-50 p-20 rounded-[3rem] text-center text-slate-300 font-black uppercase tracking-widest">Savat bo'sh</div>
-        ) : (
-          cart.map((item) => (
-            <div key={item.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 flex justify-between items-center shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white font-black">{item.qty}</div>
+    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-8">
+      <button onClick={() => navigate('/products')} className="flex items-center gap-2 text-slate-400 font-black uppercase text-[10px] hover:text-slate-900">
+        <ChevronLeft size={16}/> Ortga qaytish
+      </button>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* CHAP TARAF: SAVAT MA'LUMOTI */}
+        <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
+          <h2 className="font-black uppercase italic mb-6">Tanlangan mahsulotlar</h2>
+          <div className="space-y-4">
+            {cart.map(item => (
+              <div key={item.id} className="flex justify-between items-center border-b border-slate-50 pb-4">
                 <div>
-                  <h4 className="font-black text-slate-800 uppercase text-sm">{item.name}</h4>
-                  <p className="text-xs text-slate-400 font-bold">{item.price.toLocaleString()} x {item.qty} kg</p>
+                  <p className="font-black text-xs uppercase">{item.name}</p>
+                  <p className="text-[10px] font-bold text-slate-400">{item.qty} kg x {item.price.toLocaleString()}</p>
+                </div>
+                <span className="font-black text-slate-700">{(item.qty * item.price).toLocaleString()}</span>
+              </div>
+            ))}
+            <div className="pt-4 flex justify-between items-end">
+              <span className="text-[10px] font-black uppercase text-slate-400">Jami summa:</span>
+              <span className="text-2xl font-black text-emerald-600">{totalAmount.toLocaleString()} <small className="text-xs">uzs</small></span>
+            </div>
+          </div>
+        </div>
+
+        {/* O'NG TARAF: TO'LOV MANTIQI */}
+        <div className="space-y-6">
+          <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
+            <h2 className="font-black uppercase italic mb-6">To'lov tafsilotlari</h2>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 ml-4 mb-2 block">Mijoz ismi (Ixtiyoriy)</label>
+                <div className="relative">
+                  <UserCheck className="absolute left-4 top-4 text-slate-300" size={18}/>
+                  <input 
+                    type="text" 
+                    value={customerName} 
+                    onChange={e => setCustomerName(e.target.value)}
+                    className="w-full bg-slate-50 rounded-2xl p-4 pl-12 font-bold outline-none border-2 border-transparent focus:border-slate-900 transition-all"
+                    placeholder="Masalan: Ali Valiev"
+                  />
                 </div>
               </div>
-              <div className="flex items-center gap-6">
-                <span className="font-black text-lg">{(item.price * item.qty).toLocaleString()} UZS</span>
-                <button onClick={() => removeItem(item.id)} className="text-rose-500 hover:bg-rose-50 p-3 rounded-xl transition-colors"><Trash2 size={20}/></button>
+
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 ml-4 mb-2 block">To'lov turi</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { id: 'naqd', name: 'Naqd', icon: <Wallet size={16}/> },
+                    { id: 'karta', name: 'Karta', icon: <CreditCard size={16}/> },
+                    { id: 'nasiya', name: 'Nasiya', icon: <UserCheck size={16}/> }
+                  ].map(method => (
+                    <button 
+                      key={method.id}
+                      onClick={() => setPaymentMethod(method.id)}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${paymentMethod === method.id ? 'border-slate-900 bg-slate-900 text-white' : 'border-slate-50 text-slate-400'}`}
+                    >
+                      {method.icon}
+                      <span className="text-[9px] font-black uppercase">{method.name}</span>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
-          ))
-        )}
-      </div>
-
-      {/* O'NG TOMON - TO'LOV */}
-      <div className="lg:col-span-1">
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl sticky top-24 space-y-6">
-          <div className="text-center pb-4 border-b">
-             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Umumiy hisob</p>
-             <h2 className="text-4xl font-black text-slate-900">{total.toLocaleString()} <small className="text-xs">UZS</small></h2>
           </div>
 
-          <div className="grid grid-cols-3 gap-2">
-            {[
-              {id: 'naqd', icon: <Wallet size={16}/>, label: 'Naqd'},
-              {id: 'karta', icon: <CreditCard size={16}/>, label: 'Karta'},
-              {id: 'nasiya', icon: <UserCircle size={16}/>, label: 'Nasiya'}
-            ].map(m => (
-              <button key={m.id} onClick={() => setPaymentMethod(m.id)} className={`flex flex-col items-center gap-2 py-4 rounded-2xl border-2 transition-all ${paymentMethod === m.id ? 'border-slate-900 bg-slate-900 text-white shadow-lg' : 'border-slate-50 text-slate-400'}`}>
-                {m.icon} <span className="text-[10px] font-black uppercase">{m.label}</span>
-              </button>
-            ))}
-          </div>
-
-          {paymentMethod === 'nasiya' && (
-            <div className="space-y-3 animate-in slide-in-from-top duration-300">
-              <input type="text" placeholder="Mijoz ismi..." value={customer.name} onChange={e => setCustomer({...customer, name: e.target.value})} className="w-full p-4 bg-slate-50 rounded-xl outline-none font-bold text-sm" />
-              <input type="text" placeholder="Telefon raqami..." value={customer.phone} onChange={e => setCustomer({...customer, phone: e.target.value})} className="w-full p-4 bg-slate-50 rounded-xl outline-none font-bold text-sm" />
-            </div>
-          )}
-
-          <button onClick={handleSale} className="w-full bg-emerald-500 text-white py-5 rounded-[1.5rem] font-black uppercase shadow-lg shadow-emerald-100 flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all">
-            <Printer size={20} /> Sotuvni yakunlash
+          <button 
+            onClick={handleCompleteSale}
+            className="w-full bg-emerald-500 text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-100 hover:bg-emerald-600 active:scale-95 transition-all"
+          >
+            Sotuvni yakunlash
           </button>
         </div>
       </div>
