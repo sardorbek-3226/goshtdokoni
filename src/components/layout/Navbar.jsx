@@ -11,7 +11,6 @@ import {
   UserCircle,
   User, // Profil uchun yangi ikonka
 } from "lucide-react";
-
 export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -36,10 +35,11 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         {/* LOGO VA LINKLAR */}
         <div className="flex items-center gap-8">
-          <span className="font-black italic text-xl tracking-tighter uppercase">
-            Meat<span className="text-emerald-500">POS</span>
-          </span>
-
+        <img 
+  src="/logo.png" 
+  alt="Sifat Broyler Logo"
+  className="h-15 w-auto object-contain cursor-pointer transition duration-300 hover:scale-105"
+/>
           <div className="hidden md:flex gap-1">
             {navLinks.map((item) => (
               <Link
