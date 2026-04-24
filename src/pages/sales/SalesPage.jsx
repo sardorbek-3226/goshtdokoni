@@ -51,10 +51,11 @@ export default function SalesPage() {
     const sale = saleResponse?.data || saleResponse || {};
 
     return {
-      companyName: "SIFAT BROYLER 006",
+      companyName: "SIFAT BROYLER 066",
       address: "Yozyovon tumani",
-      phone: "+998 93 087 32 26",
-      receiptNumber: sale.receiptNumber || sale.receiptId || sale.id || Date.now(),
+      phone: "+998 94 806 00 66",
+      receiptNumber:
+        sale.receiptNumber || sale.receiptId || sale.id || Date.now(),
       date: new Date().toLocaleString("uz-UZ"),
       cashier:
         JSON.parse(localStorage.getItem("user") || "null")?.name || "Admin",
@@ -241,7 +242,7 @@ export default function SalesPage() {
   const handleCompleteSale = async () => {
     try {
       setIsSubmitting(true);
-  
+
       const saleData = {
         items: cart.map((item) => ({
           id: item.id,
@@ -254,32 +255,31 @@ export default function SalesPage() {
           cost: Number(item.cost || item.tannarx || 0),
           tannarx: Number(item.cost || item.tannarx || 0),
         })),
-      
+
         customer: {
           name: customerName.trim() || "Naqd mijoz",
           phone: customerPhone.trim(),
         },
-      
+
         customerName: customerName.trim() || "Naqd mijoz",
         customerPhone: customerPhone.trim(),
-      
+
         paymentMethod,
         totalAmount,
       };
       console.log("SALE DATA:", saleData);
-  
+
       const res = await apiService.createSale(saleData);
-  
+
       // 🔥 CHEK CHIQARISH
       const receipt = buildReceiptData(res);
       printReceipt(receipt);
-  
+
       localStorage.removeItem("active_cart");
-  
+
       toast.success("Sotuv yakunlandi!");
-  
+
       navigate("/products");
-  
     } catch (err) {
       console.error(err);
       toast.error("Xatolik!");
@@ -434,7 +434,9 @@ export default function SalesPage() {
             disabled={isSubmitting}
             className="w-full bg-emerald-500 text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-100 hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
           >
-            {isSubmitting ? "Yuklanmoqda..." : "Sotuvni yakunlash va chek chiqarish"}
+            {isSubmitting
+              ? "Yuklanmoqda..."
+              : "Sotuvni yakunlash va chek chiqarish"}
           </button>
         </div>
       </div>
