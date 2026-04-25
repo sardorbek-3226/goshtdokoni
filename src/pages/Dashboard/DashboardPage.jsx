@@ -13,6 +13,9 @@ export default function DashboardPage() {
         const statsRes = await apiService.getStats(period);
         const recentRes = await apiService.getRecentSales();
   
+        console.log("DASHBOARD STATS:", statsRes);
+        console.log("DASHBOARD RECENT:", recentRes);
+  
         setStats(Array.isArray(statsRes?.data) ? statsRes.data : []);
         setRecent(Array.isArray(recentRes?.data) ? recentRes.data : []);
       } catch (error) {
@@ -24,7 +27,6 @@ export default function DashboardPage() {
   
     loadData();
   }, [period]);
-
   return (
     <div className="p-4 md:p-8 space-y-8 pb-20">
       <div className="flex justify-between items-center">
@@ -72,7 +74,7 @@ export default function DashboardPage() {
                 s.type === "profit" ? "text-emerald-700" : "text-slate-800"
               }`}
             >
-              {s.value}{" "}
+              {s.value ?? 0}{" "}
               <small className="text-[10px] opacity-40">uzs</small>
             </h3>
           </div>
@@ -80,62 +82,70 @@ export default function DashboardPage() {
       </div>
 
       <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-slate-50 font-black uppercase italic text-slate-800">
-          Oxirgi Sotuvlar
-        </div>
+  <div className="p-6 border-b border-slate-50 font-black uppercase italic text-slate-800">
+    Oxirgi Sotuvlar
+  </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="text-[10px] font-black text-slate-300 uppercase tracking-widest border-b border-slate-50">
-                <th className="px-6 py-4">Mijoz / Vaqt</th>
-                <th className="px-6 py-4 text-right">Summa</th>
-              </tr>
-            </thead>
+  <div className="overflow-x-auto">
+    <table className="w-full text-left">
+      <thead>
+        <tr className="text-[10px] font-black text-slate-300 uppercase tracking-widest border-b border-slate-50">
+          <th className="px-6 py-4">Mijoz / Vaqt</th>
+          <th className="px-6 py-4 text-right">To‘lov / Summa</th>
+        </tr>
+      </thead>
 
-            <tbody>
-              {(recent || []).length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="2"
-                    className="px-6 py-8 text-center text-xs font-bold text-slate-400 uppercase"
-                  >
-                    Hozircha sotuvlar yo‘q
-                  </td>
-                </tr>
-              ) : (
-                (recent || []).map((r) => (
-                  <tr
-                    key={r.id}
-                    className="border-b border-slate-50 hover:bg-slate-50 transition-colors"
-                  >
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-slate-800 uppercase text-xs">
-                        {r.customer || "Naqd Mijoz"}
-                      </div>
+      <tbody>
+        {recent.length === 0 ? (
+          <tr>
+            <td
+              colSpan="2"
+              className="px-6 py-8 text-center text-xs font-bold text-slate-400 uppercase"
+            >
+              Hozircha sotuvlar yo‘q
+            </td>
+          </tr>
+        ) : (
+          recent.map((r) => (
+            <tr
+              key={r.id}
+              className="border-b border-slate-50 hover:bg-slate-50 transition-colors"
+            >
+              <td className="px-6 py-4">
+                <div className="font-bold text-slate-800 uppercase text-xs">
+                  {r.customer || "Naqd mijoz"}
+                </div>
 
-                      <div className="text-[10px] text-slate-300 flex items-center gap-1 font-medium">
-                        <Clock size={10} /> {r.time || "--:--"}
-                      </div>
-                    </td>
+                <div className="text-[10px] text-slate-300 font-medium">
+                  {r.time || "--:--"}
+                </div>
+              </td>
 
-                    <td className="px-6 py-4 text-right">
-                      <span className="text-[9px] font-black uppercase mr-2 opacity-40">
-                        {r.paymentDisplay || "Naqd"}
-                      </span>
+              <td className="px-6 py-4 text-right">
+                {/* QANDAY TO‘LAGANI */}
+                <span className="text-[9px] font-black uppercase mr-2 opacity-40">
+                  {r.paymentDisplay === "nasiya"
+                    ? "Nasiya"
+                    : r.paymentDisplay === "karta"
+                    ? "Karta"
+                    : "Naqd"}
+                </span>
 
-                      <span className="font-black text-slate-800">
-                        {r.total || 0}{" "}
-                        <small className="text-[9px]">uzs</small>
-                      </span>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                {/* SUMMA (NaN FIX) */}
+                <span className="font-black text-slate-800">
+                  {typeof r.total === "string"
+                    ? r.total
+                    : Number(r.total || r.totalAmount || 0).toLocaleString()}{" "}
+                  <small className="text-[9px]">uzs</small>
+                </span>
+              </td>
+            </tr>
+          ))
+        )}
+      </tbody>
+    </table>
+  </div>
+</div>
     </div>
   );
 }

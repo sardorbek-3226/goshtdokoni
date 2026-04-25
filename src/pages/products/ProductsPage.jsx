@@ -1,20 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { apiService } from '../../api/api';
-import { toast } from 'react-hot-toast';
+import React, { useState, useEffect } from "react";
+import { apiService } from "../../api/api";
+import { toast } from "react-hot-toast";
 import {
   ShoppingCart,
   Trash2,
   ArrowRight,
   PackageX,
   ShoppingBag,
-} from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [amounts, setAmounts] = useState({});
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -22,11 +23,10 @@ export default function ProductsPage() {
   }, []);
 
   const normalizeProduct = (p) => ({
-    ...p,
-    id: Number(p.id),
-    productId: Number(p.productId ?? p.id),
+    id: String(p.id),
+    productId: String(p.id),
     name: p.name || "Nomsiz mahsulot",
-    type: p.type || "custom",
+    type: p.type || "product",
     cost: Number(p.cost ?? p.tannarx ?? 0),
     price: Number(p.price ?? p.sotish ?? 0),
     tannarx: Number(p.tannarx ?? p.cost ?? 0),
@@ -40,17 +40,36 @@ export default function ProductsPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-
-      const res = await apiService.getWarehouseStock();
-      const stockProducts = Array.isArray(res?.data) ? res.data : [];
-      const normalizedProducts = stockProducts.map(normalizeProduct);
-
+  
+      const res = await apiService.getProducts();
+      const data = Array.isArray(res?.data) ? res.data : [];
+  
+      const warehouseBackup = JSON.parse(
+        localStorage.getItem("warehouse_backup") || "[]"
+      );
+  
+      const normalizedProducts = data.map((product) => {
+        const p = normalizeProduct(product);
+  
+        const backupItem = warehouseBackup.find(
+          (b) => String(b.productId || b.id) === String(p.productId || p.id)
+        );
+  
+        return {
+          ...p,
+          currentStock: Math.max(
+            Number(p.currentStock || 0),
+            Number(backupItem?.currentStock || 0)
+          ),
+        };
+      });
+  
       setProducts(normalizedProducts);
-
-      const savedCart = JSON.parse(localStorage.getItem('active_cart') || '[]');
+  
+      const savedCart = JSON.parse(localStorage.getItem("active_cart") || "[]");
       setCart(savedCart);
     } catch (error) {
-      console.error(error);
+      console.error("PRODUCT LOAD ERROR:", error);
       toast.error("Mahsulotlarni yuklab bo'lmadi!");
       setProducts([]);
       setCart([]);
@@ -61,18 +80,21 @@ export default function ProductsPage() {
 
   const syncCart = (newCart) => {
     setCart(newCart);
-    localStorage.setItem('active_cart', JSON.stringify(newCart));
+    localStorage.setItem("active_cart", JSON.stringify(newCart));
   };
 
   const addToCart = (product) => {
-    const qty = parseFloat(amounts[product.id]);
+    const qty = Number(amounts[product.id] || 0);
 
     if (!qty || qty <= 0) {
       toast.error("Vaznni to'g'ri kiriting!");
       return;
     }
 
-    const existingItem = cart.find((item) => Number(item.id) === Number(product.id));
+    const existingItem = cart.find(
+      (item) => String(item.id) === String(product.id)
+    );
+
     const currentCartQty = Number(existingItem?.qty || 0);
     const totalWanted = currentCartQty + qty;
 
@@ -87,25 +109,28 @@ export default function ProductsPage() {
     }
 
     let currentCart = [...cart];
+
     const existsIndex = currentCart.findIndex(
-      (item) => Number(item.id) === Number(product.id)
+      (item) => String(item.id) === String(product.id)
     );
 
     if (existsIndex > -1) {
       currentCart[existsIndex] = {
         ...currentCart[existsIndex],
         qty: Number(currentCart[existsIndex].qty) + qty,
+        quantityKg: Number(currentCart[existsIndex].qty) + qty,
       };
     } else {
       currentCart.push({
-        id: Number(product.id),
-        productId: Number(product.productId ?? product.id),
+        id: String(product.id),
+        productId: String(product.id),
         name: product.name,
         price: Number(product.price),
         cost: Number(product.cost ?? product.tannarx ?? 0),
         tannarx: Number(product.tannarx ?? product.cost ?? 0),
         sotish: Number(product.sotish ?? product.price ?? 0),
-        qty: qty,
+        qty,
+        quantityKg: qty,
         type: product.type,
         category: product.category,
         currentStock: Number(product.currentStock),
@@ -113,12 +138,12 @@ export default function ProductsPage() {
     }
 
     syncCart(currentCart);
-    setAmounts((prev) => ({ ...prev, [product.id]: '' }));
-    toast.success("Qo'shildi");
+    setAmounts((prev) => ({ ...prev, [product.id]: "" }));
+    toast.success("Savatga qo‘shildi");
   };
 
   const removeFromCart = (id) => {
-    const newCart = cart.filter((item) => Number(item.id) !== Number(id));
+    const newCart = cart.filter((item) => String(item.id) !== String(id));
     syncCart(newCart);
     toast.success("Savatdan olib tashlandi");
   };
@@ -146,13 +171,17 @@ export default function ProductsPage() {
                 key={p.id}
                 className={`bg-white p-4 rounded-[2rem] border transition-all ${
                   isOutOfStock
-                    ? 'opacity-50 border-slate-100'
-                    : 'hover:shadow-lg border-slate-100'
+                    ? "opacity-50 border-slate-100"
+                    : "hover:shadow-lg border-slate-100"
                 }`}
               >
                 <div className="flex justify-between text-[9px] font-black uppercase text-slate-300 mb-2">
                   <span>{p.type}</span>
-                  <span className={Number(p.currentStock) < 5 ? 'text-orange-500' : ''}>
+                  <span
+                    className={
+                      Number(p.currentStock) < 5 ? "text-orange-500" : ""
+                    }
+                  >
                     {Number(p.currentStock).toFixed(1)} kg
                   </span>
                 </div>
@@ -162,7 +191,7 @@ export default function ProductsPage() {
                 </h3>
 
                 <p className="text-emerald-600 font-black text-lg mb-4">
-                  {Number(p.price).toLocaleString()}{' '}
+                  {Number(p.price).toLocaleString()}{" "}
                   <small className="text-[10px]">uzs</small>
                 </p>
 
@@ -172,7 +201,7 @@ export default function ProductsPage() {
                     step="0.1"
                     min="0"
                     disabled={isOutOfStock}
-                    value={amounts[p.id] || ''}
+                    value={amounts[p.id] || ""}
                     onChange={(e) =>
                       setAmounts({ ...amounts, [p.id]: e.target.value })
                     }
@@ -185,7 +214,11 @@ export default function ProductsPage() {
                     disabled={isOutOfStock}
                     className="flex-1 bg-slate-900 text-white rounded-xl py-2 text-[9px] font-black uppercase flex items-center justify-center gap-1 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
-                    {isOutOfStock ? <PackageX size={12} /> : <ShoppingCart size={12} />}
+                    {isOutOfStock ? (
+                      <PackageX size={12} />
+                    ) : (
+                      <ShoppingCart size={12} />
+                    )}
                   </button>
                 </div>
               </div>
@@ -203,6 +236,7 @@ export default function ProductsPage() {
           <h2 className="font-black uppercase italic text-slate-800 flex items-center gap-2">
             <ShoppingBag size={18} /> Savat
           </h2>
+
           <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-full text-[10px] font-black">
             {cart.length}
           </span>
@@ -223,8 +257,10 @@ export default function ProductsPage() {
                   <p className="font-black text-[10px] uppercase text-slate-700 leading-tight">
                     {item.name}
                   </p>
+
                   <p className="text-[10px] font-bold text-slate-400">
-                    {Number(item.qty).toFixed(1)} kg x {Number(item.price).toLocaleString()}
+                    {Number(item.qty).toFixed(1)} kg x{" "}
+                    {Number(item.price).toLocaleString()}
                   </p>
                 </div>
 
@@ -245,14 +281,15 @@ export default function ProductsPage() {
               <span className="text-[10px] font-black uppercase text-slate-400">
                 Jami:
               </span>
+
               <span className="text-xl font-black text-slate-900">
-                {calculateTotal().toLocaleString()}{' '}
+                {calculateTotal().toLocaleString()}{" "}
                 <small className="text-[10px] opacity-40">uzs</small>
               </span>
             </div>
 
             <button
-              onClick={() => navigate('/sales')}
+              onClick={() => navigate("/sales")}
               className="w-full bg-emerald-500 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-600 shadow-lg shadow-emerald-100 transition-all"
             >
               Sotuvga o'tish <ArrowRight size={16} />

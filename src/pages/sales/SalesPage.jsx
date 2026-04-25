@@ -2,13 +2,7 @@ import React, { useState, useEffect } from "react";
 import { apiService } from "../../api/api";
 import { toast } from "react-hot-toast";
 import { useNavigate } from "react-router-dom";
-import {
-  Wallet,
-  CreditCard,
-  UserCheck,
-  ChevronLeft,
-  Phone,
-} from "lucide-react";
+import { Wallet, CreditCard, UserCheck, ChevronLeft, Phone } from "lucide-react";
 
 export default function SalesPage() {
   const [cart, setCart] = useState([]);
@@ -22,7 +16,7 @@ export default function SalesPage() {
   useEffect(() => {
     const savedCart = JSON.parse(localStorage.getItem("active_cart") || "[]");
 
-    if (savedCart.length === 0) {
+    if (!savedCart.length) {
       toast.error("Savat bo'sh!");
       navigate("/products");
       return;
@@ -37,170 +31,63 @@ export default function SalesPage() {
     0
   );
 
-  const normalizePaymentLabel = (method) => {
-    const value = String(method || "").toLowerCase();
-
-    if (value === "naqd") return "Naqd";
-    if (value === "karta") return "Karta";
-    if (value === "nasiya") return "Nasiya";
-
-    return "Naqd";
-  };
-
-  const buildReceiptData = (saleResponse) => {
-    const sale = saleResponse?.data || saleResponse || {};
-
-    return {
-      companyName: "SIFAT BROYLER 066",
-      address: "Yozyovon tumani",
-      phone: "+998 94 806 00 66",
-      receiptNumber:
-        sale.receiptNumber || sale.receiptId || sale.id || Date.now(),
-      date: new Date().toLocaleString("uz-UZ"),
-      cashier:
-        JSON.parse(localStorage.getItem("user") || "null")?.name || "Admin",
-      customer: customerName.trim() || sale.customerName || "Naqd mijoz",
-      customerPhone: customerPhone.trim(),
-      paymentMethod: normalizePaymentLabel(paymentMethod),
-      items: cart.map((item) => ({
-        name: item.name,
-        qty: Number(item.qty || 0),
-        price: Number(item.price || item.sotish || 0),
-      })),
-      totalAmount,
-    };
-  };
-
-  const generateReceiptHTML = (receipt) => {
-    const itemsHtml = receipt.items
-      .map(
-        (item) => `
-          <tr>
-            <td style="padding: 6px 0; font-size: 12px;">${item.name}</td>
-            <td style="padding: 6px 0; font-size: 12px; text-align:center;">
-              ${item.qty}
-            </td>
-            <td style="padding: 6px 0; font-size: 12px; text-align:right;">
-              ${Number(item.price).toLocaleString()}
-            </td>
-            <td style="padding: 6px 0; font-size: 12px; text-align:right;">
-              ${(Number(item.qty) * Number(item.price)).toLocaleString()}
-            </td>
-          </tr>
-        `
-      )
-      .join("");
-
-    return `
+  const printReceipt = (receipt) => {
+    const html = `
       <html>
         <head>
           <title>Chek</title>
           <meta charset="UTF-8" />
           <style>
-            body {
-              font-family: Arial, sans-serif;
-              padding: 20px;
-              color: #111;
-            }
-
-            .receipt {
-              max-width: 380px;
-              margin: 0 auto;
-              border: 1px dashed #999;
-              padding: 16px;
-            }
-
-            .center {
-              text-align: center;
-            }
-
-            .title {
-              font-size: 20px;
-              font-weight: 700;
-              margin-bottom: 6px;
-            }
-
-            .muted {
-              font-size: 12px;
-              color: #555;
-              margin: 2px 0;
-            }
-
-            .line {
-              border-top: 1px dashed #999;
-              margin: 12px 0;
-            }
-
-            table {
-              width: 100%;
-              border-collapse: collapse;
-            }
-
-            .total {
-              display: flex;
-              justify-content: space-between;
-              font-size: 16px;
-              font-weight: 700;
-              margin-top: 12px;
-            }
-
-            .footer {
-              text-align: center;
-              font-size: 12px;
-              margin-top: 16px;
-            }
-
-            @media print {
-              body {
-                padding: 0;
-              }
-
-              .receipt {
-                border: none;
-                width: 100%;
-                max-width: 100%;
-              }
-            }
+            body { font-family: Arial; padding: 20px; }
+            .receipt { max-width: 380px; margin: auto; border: 1px dashed #999; padding: 16px; }
+            .center { text-align: center; }
+            .title { font-size: 20px; font-weight: 700; }
+            .line { border-top: 1px dashed #999; margin: 12px 0; }
+            .muted { font-size: 12px; color: #555; }
+            table { width: 100%; border-collapse: collapse; font-size: 12px; }
+            td, th { padding: 6px 0; }
+            .total { display: flex; justify-content: space-between; font-weight: 700; font-size: 16px; }
           </style>
         </head>
-
         <body>
           <div class="receipt">
             <div class="center">
-              <div class="title">${receipt.companyName}</div>
-              <div class="muted">${receipt.address}</div>
-              <div class="muted">Tel: ${receipt.phone}</div>
+              <div class="title">SIFAT BROYLER 066</div>
+              <div class="muted">Yozyovon tumani</div>
+              <div class="muted">+998 94 806 00 66</div>
             </div>
 
             <div class="line"></div>
 
-            <div class="muted">Chek raqami: ${receipt.receiptNumber}</div>
+            <div class="muted">Chek: ${receipt.id}</div>
             <div class="muted">Sana: ${receipt.date}</div>
-            <div class="muted">Kassir: ${receipt.cashier}</div>
-            <div class="muted">Mijoz: ${receipt.customer}</div>
-
-            ${
-              receipt.customerPhone
-                ? `<div class="muted">Mijoz tel: ${receipt.customerPhone}</div>`
-                : ""
-            }
-
-            <div class="muted">To'lov turi: ${receipt.paymentMethod}</div>
+            <div class="muted">Mijoz: ${receipt.customerName}</div>
+            <div class="muted">To'lov: ${receipt.paymentMethod}</div>
 
             <div class="line"></div>
 
             <table>
               <thead>
                 <tr>
-                  <th style="text-align:left; font-size:12px;">Mahsulot</th>
-                  <th style="text-align:center; font-size:12px;">Kg</th>
-                  <th style="text-align:right; font-size:12px;">Narx</th>
-                  <th style="text-align:right; font-size:12px;">Jami</th>
+                  <th align="left">Mahsulot</th>
+                  <th align="center">Kg</th>
+                  <th align="right">Narx</th>
+                  <th align="right">Jami</th>
                 </tr>
               </thead>
-
               <tbody>
-                ${itemsHtml}
+                ${receipt.items
+                  .map(
+                    (i) => `
+                    <tr>
+                      <td>${i.name}</td>
+                      <td align="center">${i.quantityKg}</td>
+                      <td align="right">${Number(i.price).toLocaleString()}</td>
+                      <td align="right">${Number(i.total).toLocaleString()}</td>
+                    </tr>
+                  `
+                  )
+                  .join("")}
               </tbody>
             </table>
 
@@ -208,81 +95,123 @@ export default function SalesPage() {
 
             <div class="total">
               <span>Jami:</span>
-              <span>${Number(receipt.totalAmount).toLocaleString()} UZS</span>
+              <span>${Number(receipt.total).toLocaleString()} UZS</span>
             </div>
 
-            <div class="footer">
+            <div class="center muted" style="margin-top:16px;">
               Xaridingiz uchun rahmat!
             </div>
           </div>
 
-          <script>
-            window.onload = function() {
-              window.print();
-            };
-          </script>
+          <script>window.onload = () => window.print();</script>
         </body>
       </html>
     `;
-  };
 
-  const printReceipt = (receipt) => {
-    const printWindow = window.open("", "_blank", "width=500,height=700");
+    const w = window.open("", "_blank", "width=500,height=700");
+    if (!w) return toast.error("Print oynasi bloklandi!");
 
-    if (!printWindow) {
-      toast.error("Brauzer print oynasini blokladi!");
-      return;
-    }
-
-    printWindow.document.open();
-    printWindow.document.write(generateReceiptHTML(receipt));
-    printWindow.document.close();
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
   };
 
   const handleCompleteSale = async () => {
+    if (!cart.length) return toast.error("Savat bo‘sh!");
+  
     try {
       setIsSubmitting(true);
-
+  
       const saleData = {
+        id: Date.now(),
+        date: new Date().toISOString(),
+        customerName: customerName.trim() || "Naqd mijoz",
+        customerPhone: customerPhone.trim(),
+        paymentMethod,
+        totalAmount,
         items: cart.map((item) => ({
           id: item.id,
           productId: item.productId || item.id,
           name: item.name,
-          qty: Number(item.qty),
-          quantityKg: Number(item.qty),
+          quantityKg: Number(item.quantityKg || item.qty || 0),
+          qty: Number(item.quantityKg || item.qty || 0),
           price: Number(item.price || item.sotish || 0),
           sotish: Number(item.price || item.sotish || 0),
           cost: Number(item.cost || item.tannarx || 0),
           tannarx: Number(item.cost || item.tannarx || 0),
         })),
-
-        customer: {
-          name: customerName.trim() || "Naqd mijoz",
-          phone: customerPhone.trim(),
-        },
-
-        customerName: customerName.trim() || "Naqd mijoz",
-        customerPhone: customerPhone.trim(),
-
-        paymentMethod,
-        totalAmount,
       };
-      console.log("SALE DATA:", saleData);
-
-      const res = await apiService.createSale(saleData);
-
-      // 🔥 CHEK CHIQARISH
-      const receipt = buildReceiptData(res);
+  
+      await apiService.createSale(saleData);
+  
+      // 1) zaxiradan ayirish
+      const warehouseBackup = JSON.parse(
+        localStorage.getItem("warehouse_backup") || "[]"
+      );
+  
+      const updatedWarehouse = warehouseBackup.map((p) => {
+        const sold = saleData.items.find(
+          (i) => String(i.productId) === String(p.productId || p.id)
+        );
+  
+        if (!sold) return p;
+  
+        return {
+          ...p,
+          currentStock: Math.max(
+            0,
+            Number(p.currentStock || 0) - Number(sold.quantityKg || 0)
+          ),
+        };
+      });
+  
+      localStorage.setItem("warehouse_backup", JSON.stringify(updatedWarehouse));
+  
+      const oldSales = JSON.parse(localStorage.getItem("sales_history") || "[]");
+      localStorage.setItem("sales_history", JSON.stringify([...oldSales, saleData]));
+  
+      // 3) nasiya bo‘lsa qarzdorga yozish
+      if (paymentMethod === "nasiya") {
+        const oldDebts = JSON.parse(localStorage.getItem("debts") || "[]");
+  
+        const newDebt = {
+          id: Date.now(),
+          saleId: saleData.id,
+          name: saleData.customerName,
+          phone: saleData.customerPhone,
+          totalDebt: totalAmount,
+          remainingDebt: totalAmount,
+          paidAmount: 0,
+          date: new Date().toLocaleDateString("uz-UZ"),
+          items: saleData.items,
+        };
+  
+        localStorage.setItem("debts", JSON.stringify([...oldDebts, newDebt]));
+      }
+  
+      const receipt = {
+        id: saleData.id,
+        date: new Date().toLocaleString("uz-UZ"),
+        customerName: saleData.customerName,
+        paymentMethod,
+        items: saleData.items.map((item) => ({
+          name: item.name,
+          quantityKg: item.quantityKg,
+          price: item.price,
+          total: item.quantityKg * item.price,
+        })),
+        total: totalAmount,
+      };
+  
       printReceipt(receipt);
-
+  
       localStorage.removeItem("active_cart");
-
+  
       toast.success("Sotuv yakunlandi!");
-
       navigate("/products");
     } catch (err) {
-      console.error(err);
-      toast.error("Xatolik!");
+      console.error("SALE ERROR:", err?.response?.data || err);
+      toast.error("Sotuvda xatolik!");
     } finally {
       setIsSubmitting(false);
     }
@@ -291,23 +220,20 @@ export default function SalesPage() {
     <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-8">
       <button
         onClick={() => navigate("/products")}
-        className="flex items-center gap-2 text-slate-400 font-black uppercase text-[10px] hover:text-slate-900"
+        className="flex items-center gap-2 text-slate-400 font-black uppercase text-[10px]"
       >
         <ChevronLeft size={16} /> Ortga qaytish
       </button>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
+        <div className="bg-white p-8 rounded-[3rem] border border-slate-100">
           <h2 className="font-black uppercase italic mb-6">
             Tanlangan mahsulotlar
           </h2>
 
           <div className="space-y-4">
             {cart.map((item) => (
-              <div
-                key={item.id}
-                className="flex justify-between items-center border-b border-slate-50 pb-4"
-              >
+              <div key={item.id} className="flex justify-between border-b pb-4">
                 <div>
                   <p className="font-black text-xs uppercase">{item.name}</p>
                   <p className="text-[10px] font-bold text-slate-400">
@@ -316,7 +242,7 @@ export default function SalesPage() {
                   </p>
                 </div>
 
-                <span className="font-black text-slate-700">
+                <span className="font-black">
                   {(
                     Number(item.qty || 0) *
                     Number(item.price || item.sotish || 0)
@@ -325,106 +251,76 @@ export default function SalesPage() {
               </div>
             ))}
 
-            <div className="pt-4 flex justify-between items-end">
+            <div className="pt-4 flex justify-between">
               <span className="text-[10px] font-black uppercase text-slate-400">
                 Jami summa:
               </span>
-
               <span className="text-2xl font-black text-emerald-600">
-                {totalAmount.toLocaleString()}{" "}
-                <small className="text-xs">uzs</small>
+                {totalAmount.toLocaleString()} uzs
               </span>
             </div>
           </div>
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
+          <div className="bg-white p-8 rounded-[3rem] border border-slate-100">
             <h2 className="font-black uppercase italic mb-6">
               To'lov tafsilotlari
             </h2>
 
             <div className="space-y-4">
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-4 mb-2 block">
-                  Mijoz ismi
-                </label>
-
-                <div className="relative">
-                  <UserCheck
-                    className="absolute left-4 top-4 text-slate-300"
-                    size={18}
-                  />
-
-                  <input
-                    type="text"
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full bg-slate-50 rounded-2xl p-4 pl-12 font-bold outline-none border-2 border-transparent focus:border-slate-900 transition-all"
-                    placeholder="Masalan: Ali Valiev"
-                  />
-                </div>
+              <div className="relative">
+                <UserCheck
+                  className="absolute left-4 top-4 text-slate-300"
+                  size={18}
+                />
+                <input
+                  type="text"
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  className="w-full bg-slate-50 rounded-2xl p-4 pl-12 font-bold outline-none"
+                  placeholder="Mijoz ismi"
+                />
               </div>
 
               {paymentMethod === "nasiya" && (
-                <div>
-                  <label className="text-[10px] font-black uppercase text-slate-400 ml-4 mb-2 block">
-                    Telefon raqam
-                  </label>
-
-                  <div className="relative">
-                    <Phone
-                      className="absolute left-4 top-4 text-slate-300"
-                      size={18}
-                    />
-
-                    <input
-                      type="text"
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      className="w-full bg-slate-50 rounded-2xl p-4 pl-12 font-bold outline-none border-2 border-transparent focus:border-slate-900 transition-all"
-                      placeholder="+998 90 123 45 67"
-                    />
-                  </div>
+                <div className="relative">
+                  <Phone
+                    className="absolute left-4 top-4 text-slate-300"
+                    size={18}
+                  />
+                  <input
+                    type="text"
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    className="w-full bg-slate-50 rounded-2xl p-4 pl-12 font-bold outline-none"
+                    placeholder="+998 90 123 45 67"
+                  />
                 </div>
               )}
 
-              <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-4 mb-2 block">
-                  To'lov turi
-                </label>
-
-                <div className="grid grid-cols-3 gap-2">
-                  {[
-                    { id: "naqd", name: "Naqd", icon: <Wallet size={16} /> },
-                    {
-                      id: "karta",
-                      name: "Karta",
-                      icon: <CreditCard size={16} />,
-                    },
-                    {
-                      id: "nasiya",
-                      name: "Nasiya",
-                      icon: <UserCheck size={16} />,
-                    },
-                  ].map((method) => (
-                    <button
-                      type="button"
-                      key={method.id}
-                      onClick={() => setPaymentMethod(method.id)}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
-                        paymentMethod === method.id
-                          ? "border-slate-900 bg-slate-900 text-white"
-                          : "border-slate-50 text-slate-400"
-                      }`}
-                    >
-                      {method.icon}
-                      <span className="text-[9px] font-black uppercase">
-                        {method.name}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: "naqd", name: "Naqd", icon: <Wallet size={16} /> },
+                  { id: "karta", name: "Karta", icon: <CreditCard size={16} /> },
+                  { id: "nasiya", name: "Nasiya", icon: <UserCheck size={16} /> },
+                ].map((m) => (
+                  <button
+                    type="button"
+                    key={m.id}
+                    onClick={() => setPaymentMethod(m.id)}
+                    className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 ${
+                      paymentMethod === m.id
+                        ? "border-slate-900 bg-slate-900 text-white"
+                        : "border-slate-50 text-slate-400"
+                    }`}
+                  >
+                    {m.icon}
+                    <span className="text-[9px] font-black uppercase">
+                      {m.name}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
@@ -432,7 +328,7 @@ export default function SalesPage() {
           <button
             onClick={handleCompleteSale}
             disabled={isSubmitting}
-            className="w-full bg-emerald-500 text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest text-xs shadow-xl shadow-emerald-100 hover:bg-emerald-600 active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full bg-emerald-500 text-white py-6 rounded-[2.5rem] font-black uppercase tracking-widest text-xs"
           >
             {isSubmitting
               ? "Yuklanmoqda..."
