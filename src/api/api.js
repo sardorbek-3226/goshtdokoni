@@ -614,12 +614,11 @@ export const apiService = {
   getDebts: async () => {
     return apiService.getDebtors();
   },
-
   addDebtCustomer: async (data) => {
-    const debts = JSON.parse(localStorage.getItem(DEBTS_KEY) || "[]");
-
+    const debts = JSON.parse(localStorage.getItem("debts") || "[]");
+  
     const amount = Number(data.totalDebt || data.amount || 0);
-
+  
     const newDebt = {
       id: Date.now(),
       name: String(data.name || "").trim(),
@@ -631,9 +630,9 @@ export const apiService = {
       items: [],
       type: "manual",
     };
-
-    localStorage.setItem(DEBTS_KEY, JSON.stringify([...debts, newDebt]));
-
+  
+    localStorage.setItem("debts", JSON.stringify([...debts, newDebt]));
+  
     return { success: true, data: newDebt };
   },
 
