@@ -143,7 +143,12 @@ export default function SalesPage() {
       };
   
       await apiService.createSale(saleData);
-  
+      if (paymentMethod === "nasiya") {
+        await apiService.addDebtCustomer({
+          name: customerName.trim() || "Nasiya mijoz",
+          phone: customerPhone.trim(),
+        });
+      }
       // 1) zaxiradan ayirish
       const warehouseBackup = JSON.parse(
         localStorage.getItem("warehouse_backup") || "[]"

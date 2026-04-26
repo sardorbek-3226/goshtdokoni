@@ -86,25 +86,54 @@ export default function WarehousePage() {
     try {
       setLoading(true);
   
-      const backup = getBackup();
-  
       const productsRes = await apiService.getProducts();
       const warehouseRes = await apiService.getWarehouseStock();
   
-      const allProducts = Array.isArray(productsRes?.data)
+      const productsData = Array.isArray(productsRes?.data)
         ? productsRes.data.map(normalizeProduct)
         : [];
   
-      const stockProducts = Array.isArray(warehouseRes?.data)
+      const stockData = Array.isArray(warehouseRes?.data)
         ? warehouseRes.data.map(normalizeProduct)
         : [];
   
-      const merged = mergeProductsWithStock(allProducts, stockProducts, backup);
+      const backup = JSON.parse(
+        localStorage.getItem("warehouse_backup") || "[]"
+      );
+  
+      const merged = productsData.map((p) => {
+        const stockItem = stockData.find(
+          (s) => String(s.productId || s.id) === String(p.id || p.productId)
+        );
+  
+        const backupItem = backup.find(
+          (b) => String(b.productId || b.id) === String(p.id || p.productId)
+        );
+  
+        const apiStock = Number(
+          stockItem?.currentStock ||
+            stockItem?.quantityKg ||
+            stockItem?.quantity ||
+            0
+        );
+  
+        const backupStock = Number(backupItem?.currentStock || 0);
+  
+        return {
+          ...p,
+          productId: String(p.id || p.productId),
+          currentStock: Math.max(apiStock, backupStock),
+        };
+      });
   
       setProducts(merged);
-      saveBackup(merged);
     } catch (err) {
-      const backup = getBackup();
+      console.error("WAREHOUSE LOAD ERROR:", err);
+  
+      const backup = JSON.parse(
+        localStorage.getItem("warehouse_backup") || "[]"
+      );
+  
       setProducts(backup);
     } finally {
       setLoading(false);
@@ -122,63 +151,58 @@ export default function WarehousePage() {
     ? Number(selectedProduct.cost || 0) * Number(form.weight || 0)
     : 0;
 
-  const handleAddStock = async (e) => {
-    e.preventDefault();
-
-    const productId = String(form.productId || "");
-    const quantityKg = Number(form.weight || 0);
-
-    if (!productId) {
-      toast.error("Mahsulot tanlang!");
-      return;
-    }
-
-    if (!quantityKg || quantityKg <= 0) {
-      toast.error("Vaznni to‘g‘ri kiriting!");
-      return;
-    }
-
-    try {
-      setSavingStock(true);
-
-      const payload = {
-        productId,
-        quantityKg,
-      };
-
-      console.log("📦 KIRIM PAYLOAD:", payload);
-
-      await apiService.addStock(payload);
-
-      const updatedProducts = products.map((p) =>
-        String(p.productId || p.id) === String(productId)
-          ? {
-              ...p,
-              currentStock: Number(p.currentStock || 0) + quantityKg,
-            }
-          : p
-      );
-
-      setProducts(updatedProducts);
-      saveBackup(updatedProducts);
-
-      toast.success("Kirim qilindi!");
-      setForm({ productId: "", weight: "" });
-    } catch (err) {
-      console.error("KIRIM ERROR:", err?.response?.data || err);
-
-      const message = Array.isArray(err?.response?.data?.message)
-        ? err.response.data.message.join(", ")
-        : err?.response?.data?.message ||
-          err?.message ||
-          "Kirim qilishda xato!";
-
-      toast.error(message);
-    } finally {
-      setSavingStock(false);
-    }
-  };
-
+    const handleAddStock = async (e) => {
+      e.preventDefault();
+    
+      const productId = String(form.productId || "");
+      const quantityKg = Number(form.weight || 0);
+    
+      if (!productId) {
+        toast.error("Mahsulot tanlang!");
+        return;
+      }
+    
+      if (!quantityKg || quantityKg <= 0) {
+        toast.error("Vaznni to‘g‘ri kiriting!");
+        return;
+      }
+    
+      try {
+        setSavingStock(true);
+    
+        await apiService.addStock({
+          productId,
+          quantityKg,
+        });
+    
+        const updatedProducts = products.map((p) =>
+          String(p.productId || p.id) === String(productId)
+            ? {
+                ...p,
+                currentStock: Number(p.currentStock || 0) + quantityKg,
+              }
+            : p
+        );
+    
+        setProducts(updatedProducts);
+    
+        localStorage.setItem(
+          "warehouse_backup",
+          JSON.stringify(updatedProducts)
+        );
+    
+        toast.success("Kirim qilindi!");
+        setForm({ productId: "", weight: "" });
+    
+        // MUHIM: hozircha load() chaqirilmaydi
+        // chunki backend 0 qaytaryapti
+      } catch (err) {
+        console.error("KIRIM ERROR:", err?.response?.data || err);
+        toast.error("Kirim qilishda xato!");
+      } finally {
+        setSavingStock(false);
+      }
+    };
   const openEditModal = (product) => {
     setEditingProduct(product);
     setNewPrices({
