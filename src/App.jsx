@@ -1,114 +1,38 @@
-import React from "react";
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import { Toaster } from "react-hot-toast";
+import React from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 
-import Navbar from "./components/layout/Navbar";
-import LoginPage from "./pages/auth/LoginPage";
-import DashboardPage from "./pages/Dashboard/DashboardPage";
-import ProductsPage from "./pages/products/ProductsPage";
-import WarehousePage from "./pages/warehouse/WarehousePage";
-import SalesPage from "./pages/sales/SalesPage";
-import ReportsPage from "./pages/reports/ReportsPage"
-import DebtsPage from "./pages/debts/DebtsPage"
-import ProfilePage from "./pages/profile/ProfilePage"
+import MainLayout from './components/layout/MainLayout';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import ProductsPage from './pages/ProductsPage';
+import WarehousePage from './pages/WarehousePage';
+import SalesPage from './pages/SalesPage';
+import DebtsPage from './pages/DebtsPage';
+import ReportsPage from './pages/ReportsPage';
+import ProfilePage from './pages/ProfilePage';
 
+const Protected = ({ children }) => {
+  const token = localStorage.getItem('user_token');
+  return token ? children : <Navigate to="/login" />;
+};
 
-function App() {
-  const isAuthenticated = () => {
-    return localStorage.getItem("isLoggedIn") === "true";
-  };
-
-  const ProtectedRoute = ({ children }) => {
-    if (!isAuthenticated()) {
-      return <Navigate to="/login" replace />;
-    }
-
-    return (
-      <div className="min-h-screen bg-slate-50 font-sans">
-        <Navbar />
-        <main>{children}</main>
-      </div>
-    );
-  };
-
+export default function App() {
   return (
-    <Router>
-      <Toaster position="top-center" reverseOrder={false} />
-
+    <>
+      <Toaster position="top-center" />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/products"
-          element={
-            <ProtectedRoute>
-              <ProductsPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/warehouse"
-          element={
-            <ProtectedRoute>
-              <WarehousePage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/sales"
-          element={
-            <ProtectedRoute>
-              <SalesPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/debts"
-          element={
-            <ProtectedRoute>
-              <DebtsPage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
-          path="/reports"
-          element={
-            <ProtectedRoute>
-              <ReportsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <ProfilePage />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route path="*" element={<Navigate to="/" replace />} />
+        <Route path="/" element={<Protected><MainLayout /></Protected>}>
+          <Route index element={<DashboardPage />} />
+          <Route path="products" element={<ProductsPage />} />
+          <Route path="warehouse" element={<WarehousePage />} />
+          <Route path="sales" element={<SalesPage />} />
+          <Route path="debts" element={<DebtsPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+        </Route>
       </Routes>
-    </Router>
+    </>
   );
 }
-
-export default App;

@@ -1,13 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.jsx';
-import './index.css'; // Tailwind va global stillar
-import { CartProvider } from './context/CartContext.jsx';
+import { BrowserRouter } from 'react-router-dom'; // <--- SHU YERDA QOLSIN
+import App from './App';
+import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <CartProvider> {/* Hamma narsa shu ichida bo'lishi shart! */}
+    <BrowserRouter> 
       <App />
-    </CartProvider>
+    </BrowserRouter>
   </React.StrictMode>
 );
