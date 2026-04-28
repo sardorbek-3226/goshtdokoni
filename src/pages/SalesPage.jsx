@@ -5,13 +5,11 @@ import {
   ShoppingCart, Search, Plus, Minus, Trash2, Loader2, 
   Scale, Wallet, CreditCard, UserCheck, Phone, ChevronLeft, CheckCircle2 
 } from "lucide-react";
-
 export default function SalesPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [cart, setCart] = useState([]);
-  
   // Sahifa holati: 'list' (ro'yxat) yoki 'checkout' (to'lov)
   const [view, setView] = useState("list"); 
 
@@ -80,6 +78,16 @@ export default function SalesPage() {
     w.document.write(html);
     w.document.close();
   };
+  const onSaleFinish = (saleData) => {
+    // saleData ichida cart, totalAmount, customerName va h.k. bo'ladi
+    printReceipt({
+      id: saleData.id,
+      customerName: saleData.customerName,
+      items: saleData.cart,
+      total: saleData.totalAmount,
+      paymentMethod: saleData.paymentMethod
+    });
+};
 
   const handleCompleteSale = async () => {
     // 1. Validatsiya
