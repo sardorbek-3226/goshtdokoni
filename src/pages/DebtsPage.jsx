@@ -116,7 +116,9 @@ export default function DebtsPage() {
 
         {/* LIST */}
         <div className="grid grid-cols-1 gap-4">
-          {debts.filter(d => d.customerName.toLowerCase().includes(searchTerm.toLowerCase())).map((debt) => (
+        {debts?.filter(d => 
+  d?.customerName?.toLowerCase()?.includes(searchTerm?.toLowerCase() || "")
+).map((debt) => (
             <div key={debt.id} className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 font-black italic border">{debt.customerName.charAt(0)}</div>
