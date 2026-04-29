@@ -46,38 +46,196 @@ export default function SalesPage() {
       setLoading(false);
     }
   };
+// 1. CHEK CHIQARISH FUNKSIYASI (To'liq va xatosiz)
+const printReceipt = (receipt) => {
+  const COMPANY_NAME = "SIFAT BROYLER 066";
+  const ADDRESS = "Yozyovon tumani, Markaziy ko'cha";
+  const PHONES = "+998 90 123 45 67, +998 91 789 00 11";
 
-  const printReceipt = (receipt) => {
-    const html = `
-      <html>
-        <head><title>Chek</title><style>
-          body { font-family: sans-serif; padding: 20px; text-transform: uppercase; font-size: 14px; }
-          .receipt { max-width: 300px; margin: auto; border: 1px dashed #000; padding: 15px; }
-          .center { text-align: center; margin-bottom: 10px; }
-          .line { border-top: 1px dashed #000; margin: 10px 0; }
+  const html = `
+    <html>
+      <head>
+        <title>Chek - ${receipt.id}</title>
+        <style>
+          @page { margin: 0; }
+          body { 
+            font-family: 'Courier New', Courier, monospace; 
+            width: 100%; 
+            margin: 0; 
+            padding: 4mm; 
+            font-size: 12px;
+            text-transform: uppercase;
+            color: #000;
+          }
+          .header { text-align: center; margin-bottom: 8px; }
+          .brand { font-size: 16px; font-weight: bold; }
+          .info { font-size: 10px; line-height: 1.2; }
+          .line { border-top: 1px dashed #000; margin: 8px 0; }
           table { width: 100%; border-collapse: collapse; }
-          td { padding: 5px 0; }
-        </style></head>
-        <body>
-          <div class="receipt">
-            <div class="center"><strong>SIFAT BROYLER 066</strong><br/>Yozyovon tumani</div>
-            <div>Sana: ${new Date().toLocaleString()}</div>
-            <div>Mijoz: ${receipt.customerName}</div>
-            <div class="line"></div>
-            <table>
-              ${receipt.items.map(i => `<tr><td>${i.name}</td><td>${i.qty} KG</td><td align="right">${(i.price * i.qty).toLocaleString()}</td></tr>`).join('')}
-            </table>
-            <div class="line"></div>
-            <div style="display:flex; justify-content:space-between"><strong>Jami:</strong><strong>${receipt.total.toLocaleString()} UZS</strong></div>
-            <div class="center" style="margin-top:15px">Xaridingiz uchun rahmat!</div>
-          </div>
-          <script>window.onload = () => { window.print(); window.close(); }</script>
-        </body>
-      </html>`;
-    const w = window.open("", "_blank", "width=400,height=600");
+          th { text-align: left; font-size: 11px; border-bottom: 1px solid #000; }
+          td { padding: 4px 0; vertical-align: top; }
+          .right { text-align: right; }
+          .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-top: 5px; }
+          .footer { text-align: center; margin-top: 15px; font-size: 10px; line-height: 1.4; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="brand">${COMPANY_NAME}</div>
+          <div class="info">${ADDRESS}<br/>TEL: ${PHONES}</div>
+        </div>
+
+        <div class="line"></div>
+        
+        <div style="font-size: 11px;">
+          ID: #${receipt.id}<br/>
+          SANA: ${new Date().toLocaleString('uz-UZ')}<br/>
+          MIJOZ: ${receipt.customerName || "NAQD MIJOZ"}
+        </div>
+
+        <div class="line"></div>
+
+        <table>
+          <thead>
+            <tr>
+              <th width="50%">NOMI</th>
+              <th width="20%">KG</th>
+              <th width="30%" class="right">SUMMA</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${receipt.items.map(i => `
+              <tr>
+                <td>${i.name}</td>
+                <td>${Number(i.qty).toFixed(2)}</td>
+                <td class="right">${(Number(i.price) * Number(i.qty)).toLocaleString()}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="line"></div>
+
+        <div class="total-row">
+          <span>JAMI:</span>
+          <span>${Number(receipt.total).toLocaleString()} UZS</span>
+        </div>
+        
+        <div style="font-size: 10px; margin-top: 5px;">
+          TO'LOV: ${ (receipt.paymentMethod || "NAQD").toUpperCase() }
+        </div>
+
+        <div class="line"></div>
+
+        <div class="footer">
+          XARIDINGIZ UCHUN RAHMAT!<br/>
+          YANA KELIB TURING!
+        </div>
+
+        <script>
+          window.onload = () => {
+            window.print();
+            setTimeout(() => { window.close(); }, 300);
+          };
+        </script>
+      </body>
+    </html>`;
+
+  const w = window.open("", "_blank", "width=400,height=600");
+  if (w) {
     w.document.write(html);
     w.document.close();
-  };
+  } else {
+    toast.error("Brauzer oyna ochishni taqiqladi (Popup blocked)!");
+  }
+};
+
+// 2. SOTUVNI YAKUNLASH FUNKSIYASI (Xatosiz)
+const handleCompleteSale = async () => {
+  if (!cart || cart.length === 0) {
+    return toast.error("Savat bo'sh!");
+  }
+  
+  if (paymentMethod === "nasiya" && !customerName) {
+    return toast.error("Nasiya uchun mijoz ismini kiritish shart!");
+  }
+
+  try {
+    setIsSubmitting(true);
+
+    const currentTotalAmount = cart.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.qty || 0)), 0);
+    const totalCost = cart.reduce((sum, item) => sum + (Number(item.cost || 0) * Number(item.qty || 0)), 0);
+    const profit = currentTotalAmount - totalCost;
+
+    const saleData = {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      customerName: customerName || "Naqd mijoz",
+      customerPhone: customerPhone || "",
+      paymentMethod: paymentMethod, // Bu yerda "naqd", "karta" yoki "nasiya" bo'ladi
+      totalAmount: currentTotalAmount,
+      profit: profit,
+      items: cart.map(i => ({
+        id: i.id,
+        name: i.name,
+        price: i.price,
+        qty: i.qty,
+        total: i.price * i.qty
+      }))
+    };
+
+    // API va LocalStorage saqlash...
+    try {
+      if (apiService?.createSale) {
+        await apiService.createSale(saleData);
+      }
+    } catch (e) { console.error("API Error", e); }
+
+    const currentSales = JSON.parse(localStorage.getItem("sales_history") || "[]");
+    localStorage.setItem("sales_history", JSON.stringify([...currentSales, saleData]));
+
+    if (paymentMethod === "nasiya") {
+      const currentDebts = JSON.parse(localStorage.getItem("debts") || "[]");
+      localStorage.setItem("debts", JSON.stringify([...currentDebts, {
+        id: Date.now(),
+        saleId: saleData.id,
+        customerName: saleData.customerName,
+        totalAmount: currentTotalAmount,
+        remainingDebt: currentTotalAmount,
+        date: saleData.date
+      }]));
+    }
+
+    // Zaxirani yangilash...
+    const currentStock = JSON.parse(localStorage.getItem("warehouse_backup") || "[]");
+    const updatedStock = currentStock.map(stockItem => {
+      const soldItem = cart.find(c => String(c.id) === String(stockItem.productId || stockItem.id));
+      return soldItem ? { ...stockItem, currentStock: Number(stockItem.currentStock) - Number(soldItem.qty) } : stockItem;
+    });
+    localStorage.setItem("warehouse_backup", JSON.stringify(updatedStock));
+
+    // CHEK CHIQARISH (Xatoni oldini olish uchun hamma ma'lumot uzatildi)
+    printReceipt({
+      id: saleData.id,
+      customerName: saleData.customerName,
+      items: cart,
+      total: currentTotalAmount,
+      paymentMethod: paymentMethod // ENDI UNDEFINED BO'LMAYDI
+    });
+
+    setCart([]);
+    setCustomerName("");
+    setCustomerPhone("");
+    setView("list");
+    toast.success("Sotuv yakunlandi!");
+    if (loadData) loadData();
+
+  } catch (err) {
+    toast.error("Xatolik yuz berdi!");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   const onSaleFinish = (saleData) => {
     // saleData ichida cart, totalAmount, customerName va h.k. bo'ladi
     printReceipt({
@@ -89,107 +247,7 @@ export default function SalesPage() {
     });
 };
 
-  const handleCompleteSale = async () => {
-    // 1. Validatsiya
-    if (!cart || cart.length === 0) {
-      return toast.error("Savat bo'sh! Mahsulot qo'shing.");
-    }
-    
-    if (paymentMethod === "nasiya" && !customerName) {
-      return toast.error("Nasiya uchun mijoz ismini kiritish shart!");
-    }
-  
-    try {
-      setIsSubmitting(true);
-  
-      // 2. Hisob-kitoblarni xavfsiz bajarish (Number() orqali)
-      const totalAmount = cart.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.qty || 0)), 0);
-      const totalCost = cart.reduce((sum, item) => sum + (Number(item.cost || 0) * Number(item.qty || 0)), 0);
-      const profit = totalAmount - totalCost;
-  
-      const saleData = {
-        id: Date.now(),
-        date: new Date().toISOString(),
-        customerName: customerName || "Naqd mijoz",
-        customerPhone: customerPhone || "",
-        paymentMethod: paymentMethod,
-        totalAmount: totalAmount,
-        profit: profit,
-        items: cart.map(i => ({
-          id: i.id,
-          name: i.name,
-          price: i.price,
-          qty: i.qty,
-          total: i.price * i.qty
-        }))
-      };
-  
-      // 3. API-ga yuborish (Xatolikni tekshirish bilan)
-      try {
-        if (apiService && apiService.createSale) {
-          await apiService.createSale(saleData);
-        }
-      } catch (apiErr) {
-        console.error("API Error:", apiErr);
-        // API ishlamasa ham davom etishni xohlasangiz buni qoldiring, 
-        // aks holda return qiling.
-      }
-  
-      // 4. LocalStorage: Sotuvlar tarixi
-      const currentSales = JSON.parse(localStorage.getItem("sales_history") || "[]");
-      localStorage.setItem("sales_history", JSON.stringify([...currentSales, saleData]));
-  
-      // 5. LocalStorage: Nasiyalar
-      if (paymentMethod === "nasiya") {
-        const currentDebts = JSON.parse(localStorage.getItem("debts") || "[]");
-        const newDebt = {
-          id: Date.now(),
-          saleId: saleData.id,
-          customerName: saleData.customerName,
-          phone: saleData.customerPhone,
-          totalAmount: totalAmount,
-          remainingDebt: totalAmount,
-          date: saleData.date
-        };
-        localStorage.setItem("debts", JSON.stringify([...currentDebts, newDebt]));
-      }
-  
-      // 6. Zaxirani (Warehouse) kamaytirish
-      const currentStock = JSON.parse(localStorage.getItem("warehouse_backup") || "[]");
-      const updatedStock = currentStock.map(stockItem => {
-        const soldItem = cart.find(c => String(c.id) === String(stockItem.productId || stockItem.id));
-        if (soldItem) {
-          return { ...stockItem, currentStock: Number(stockItem.currentStock) - Number(soldItem.qty) };
-        }
-        return stockItem;
-      });
-      localStorage.setItem("warehouse_backup", JSON.stringify(updatedStock));
-  
-      // 7. Chek chiqarish
-      printReceipt({
-        customerName: saleData.customerName,
-        items: cart,
-        total: totalAmount,
-        id: saleData.id
-      });
-  
-      // 8. Tozalash
-      setCart([]);
-      setCustomerName("");
-      setCustomerPhone("");
-      setView("list");
-      toast.success("Sotuv muvaffaqiyatli yakunlandi!");
-      
-      // Ma'lumotlarni qayta yuklash
-      if (typeof loadData === 'function') loadData();
-  
-    } catch (err) {
-      console.error("Sotuv xatosi:", err);
-      toast.error("Sotuvni yakunlashda xatolik yuz berdi. Konsolni tekshiring.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+ 
   const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
   return (
