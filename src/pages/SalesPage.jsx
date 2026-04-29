@@ -51,50 +51,53 @@ export default function SalesPage() {
     const ADDRESS = "Yozyovon tumani, Markaziy ko'cha";
     const PHONES = "+998 90 123 45 67, +998 91 789 00 11";
 
+    // Narxlarni formatlash funksiyasi (000 chiqishini kafolatlaydi)
+    const formatPrice = (num) => {
+      return new Intl.NumberFormat('uz-UZ').format(num);
+    };
+
     const html = `
       <html>
         <head>
           <title>Chek - ${receipt.id}</title>
           <style>
-            @page { 
-              margin: 0; 
-            }
+            @page { margin: 0; }
             body { 
               font-family: 'Arial', sans-serif; 
               width: 100%; 
               margin: 0; 
-              padding: 4mm; 
-              /* Chek oxiridan 6 santimetr bo'sh joy tashlaydi, shunda yozuvlar kesilib qolmaydi */
-              padding-bottom: 60mm; 
+              padding: 5mm; 
+              /* Chek oxirida qog'oz chiqib turishi uchun bo'shliq */
+              padding-bottom: 70mm; 
               font-size: 14px; 
-              font-weight: 900; /* Eng qalin yozuv rejimi */
+              font-weight: 900; /* Maksimal qalin yozuv */
               text-transform: uppercase;
               color: #000;
-              line-height: 1.2;
+              line-height: 1.3;
             }
             .header { text-align: center; margin-bottom: 10px; }
-            .brand { font-size: 20px; font-weight: 900; margin-bottom: 4px; }
-            .info { font-size: 11px; font-weight: bold; }
-            .line { border-top: 2px solid #000; margin: 8px 0; }
+            .brand { font-size: 22px; font-weight: 900; margin-bottom: 4px; border: 2px solid #000; padding: 2px; }
+            .info { font-size: 12px; font-weight: bold; }
+            .line { border-top: 3px solid #000; margin: 8px 0; }
             
             table { width: 100%; border-collapse: collapse; }
             th { text-align: left; font-size: 13px; border-bottom: 2px solid #000; padding-bottom: 4px; }
-            td { padding: 6px 0; vertical-align: top; font-size: 14px; }
+            td { padding: 6px 0; vertical-align: top; font-size: 15px; font-weight: 900; }
             .right { text-align: right; }
             
             .totals { margin-top: 10px; }
             .total-row { 
               display: flex; 
               justify-content: space-between; 
-              font-size: 18px; 
+              font-size: 20px; 
               font-weight: 900; 
-              border-top: 2px solid #000;
-              padding-top: 8px;
+              border-top: 3px solid #000;
+              padding-top: 10px;
             }
             .footer { 
               text-align: center; 
-              margin-top: 20px; 
-              font-size: 12px; 
+              margin-top: 25px; 
+              font-size: 13px; 
               border-top: 1px dashed #000;
               padding-top: 10px;
             }
@@ -111,7 +114,7 @@ export default function SalesPage() {
 
           <div class="line"></div>
           
-          <div style="font-size: 12px;">
+          <div style="font-size: 13px; font-weight: 900;">
             ID: #${receipt.id}<br/>
             SANA: ${new Date().toLocaleString('uz-UZ')}<br/>
             MIJOZ: ${receipt.customerName || "NAQD MIJOZ"}
@@ -122,28 +125,31 @@ export default function SalesPage() {
           <table>
             <thead>
               <tr>
-                <th width="50%">NOMI</th>
+                <th width="45%">NOMI</th>
                 <th width="20%">KG</th>
-                <th width="30%" class="right">SUMMA</th>
+                <th width="35%" class="right">SUMMA</th>
               </tr>
             </thead>
             <tbody>
-              ${receipt.items.map(i => `
-                <tr>
-                  <td>${i.name}</td>
-                  <td>${Number(i.qty).toFixed(2)}</td>
-                  <td class="right">${(Number(i.price) * Number(i.qty)).toLocaleString()}</td>
-                </tr>
-              `).join('')}
+              ${receipt.items.map(i => {
+                const itemTotal = Number(i.price) * Number(i.qty);
+                return `
+                  <tr>
+                    <td>${i.name}</td>
+                    <td>${Number(i.qty).toFixed(2)}</td>
+                    <td class="right">${formatPrice(itemTotal)}</td>
+                  </tr>
+                `;
+              }).join('')}
             </tbody>
           </table>
 
           <div class="totals">
             <div class="total-row">
               <span>JAMI:</span>
-              <span>${Number(receipt.total).toLocaleString()}</span>
+              <span>${formatPrice(receipt.total)}</span>
             </div>
-            <div style="font-size: 12px; margin-top: 5px;">
+            <div style="font-size: 14px; margin-top: 8px; font-weight: 900;">
               TO'LOV: ${ (receipt.paymentMethod || "NAQD").toUpperCase() }
             </div>
           </div>
@@ -162,13 +168,14 @@ export default function SalesPage() {
         </body>
       </html>`;
 
-    const w = window.open("", "_blank", "width=400,height=600");
+    const w = window.open("", "_blank", "width=450,height=700");
     if (w) {
       w.document.write(html);
       w.document.close();
+    } else {
+      alert("Brauzer oyna ochishni blokladi! Iltimos, ruxsat bering.");
     }
   };
-
   const handleCompleteSale = async () => {
     if (!cart || cart.length === 0) return toast.error("Savat bo'sh!");
     
