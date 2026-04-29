@@ -221,52 +221,6 @@ const handleCompleteSale = async () => {
     setIsSubmitting(false);
   }
 };
-  const handleCompleteSale = async () => {
-    if (!cart || cart.length === 0) return toast.error("Savat bo'sh!");
-    
-    try {
-      setIsSubmitting(true);
-      const currentTotalAmount = cart.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.qty || 0)), 0);
-      const totalCost = cart.reduce((sum, item) => sum + (Number(item.cost || 0) * Number(item.qty || 0)), 0);
-      
-      const saleData = {
-        id: Date.now(),
-        date: new Date().toISOString(),
-        customerName: customerName || "Naqd mijoz",
-        customerPhone: customerPhone || "",
-        paymentMethod: paymentMethod,
-        totalAmount: currentTotalAmount,
-        profit: currentTotalAmount - totalCost,
-        items: cart
-      };
-
-      // Ma'lumotlarni saqlash (API va LocalStorage)
-      if (apiService?.createSale) await apiService.createSale(saleData);
-      
-      const currentSales = JSON.parse(localStorage.getItem("sales_history") || "[]");
-      localStorage.setItem("sales_history", JSON.stringify([...currentSales, saleData]));
-
-      // Chek chiqarish buyrug'i
-      printReceipt({
-        id: saleData.id,
-        customerName: saleData.customerName,
-        items: cart,
-        total: currentTotalAmount,
-        paymentMethod: paymentMethod
-      });
-
-      // Tozalash
-      setCart([]);
-      setCustomerName("");
-      setCustomerPhone("");
-      setView("list");
-      toast.success("Sotuv yakunlandi!");
-    } catch (err) {
-      toast.error("Xatolik!");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
 // 2. SOTUVNI YAKUNLASH FUNKSIYASI (Xatosiz)
 const onSaleFinish = (saleData) => {
     // saleData ichida cart, totalAmount, customerName va h.k. bo'ladi
