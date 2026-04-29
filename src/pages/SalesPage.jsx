@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { apiService } from "../api/api";
+import qz from "qz-tray";
 import { toast } from "react-hot-toast";
 import { 
   ShoppingCart, Search, Plus, Minus, Trash2, Loader2, 
