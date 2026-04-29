@@ -46,136 +46,181 @@ export default function SalesPage() {
       setLoading(false);
     }
   };
-  const printReceipt = (receipt) => {
-    const COMPANY_NAME = "SIFAT BROYLER 066";
-    const ADDRESS = "Yozyovon tumani, Markaziy ko'cha";
-    const PHONES = "+998 94 806 00 66";
+ // 1. CHEK CHIQARISH FUNKSIYASI
+ const printReceipt = (receipt) => {
+  const COMPANY_NAME = "SIFAT BROYLER 066";
+  const ADDRESS = "Yozyovon tumani, Markaziy ko'cha";
+  const PHONES = "+998 90 123 45 67, +998 91 789 00 11";
 
-    // Narxlarni formatlash funksiyasi (000 chiqishini kafolatlaydi)
-    const formatPrice = (num) => {
-      return new Intl.NumberFormat('uz-UZ').format(num);
+  // Minglik ajratgich (000 chiqishi uchun)
+  const formatNumber = (num) => {
+    return new Intl.NumberFormat('uz-UZ').format(Math.round(num));
+  };
+
+  const html = `
+    <html>
+      <head>
+        <style>
+          @page { margin: 0; }
+          body { 
+            font-family: 'Arial', sans-serif; 
+            width: 100%; 
+            margin: 0; 
+            padding: 5mm; 
+            padding-bottom: 70mm; /* Qog'ozni majburiy surish */
+            font-size: 14px; 
+            font-weight: 900; 
+            text-transform: uppercase;
+            color: #000;
+            line-height: 1.2;
+          }
+          .center { text-align: center; }
+          .brand { font-size: 22px; font-weight: 900; border-bottom: 3px solid #000; margin-bottom: 5px; padding-bottom: 5px; }
+          .line { border-top: 3px solid #000; margin: 10px 0; }
+          table { width: 100%; border-collapse: collapse; }
+          th { text-align: left; border-bottom: 2px solid #000; padding-bottom: 5px; font-size: 13px; }
+          td { padding: 7px 0; font-size: 15px; font-weight: 900; }
+          .right { text-align: right; }
+          .total-section { margin-top: 10px; border-top: 3px solid #000; padding-top: 10px; }
+          .total-row { display: flex; justify-content: space-between; font-size: 20px; font-weight: 900; }
+          .footer { text-align: center; margin-top: 30px; border-top: 1px dashed #000; padding-top: 10px; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="center">
+          <div class="brand">${COMPANY_NAME}</div>
+          <div style="font-size: 11px;">${ADDRESS}</div>
+          <div style="font-size: 11px;">TEL: ${PHONES}</div>
+        </div>
+
+        <div class="line"></div>
+        
+        <div>
+          ID: #${receipt.id}<br/>
+          SANA: ${new Date().toLocaleString('uz-UZ')}<br/>
+          MIJOZ: ${receipt.customerName || "NAQD MIJOZ"}
+        </div>
+
+        <div class="line"></div>
+
+        <table>
+          <thead>
+            <tr>
+              <th width="45%">NOMI</th>
+              <th width="20%">KG</th>
+              <th width="35%" class="right">SUMMA</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${receipt.items.map(i => `
+              <tr>
+                <td>${i.name}</td>
+                <td>${Number(i.qty).toFixed(2)}</td>
+                <td class="right">${formatNumber(Number(i.price) * Number(i.qty))}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+
+        <div class="total-section">
+          <div class="total-row">
+            <span>JAMI:</span>
+            <span>${formatNumber(receipt.total)} UZS</span>
+          </div>
+          <div style="margin-top: 5px; font-size: 13px;">
+            TO'LOV: ${(receipt.paymentMethod || "NAQD").toUpperCase()}
+          </div>
+        </div>
+
+        <div class="footer">
+          XARIDINGIZ UCHUN RAHMAT!<br/>
+          YANA KELIB TURING!
+        </div>
+
+        <script>
+          window.onload = () => {
+            window.print();
+            setTimeout(() => { window.close(); }, 500);
+          };
+        </script>
+      </body>
+    </html>`;
+
+  const w = window.open("", "_blank", "width=450,height=700");
+  if (w) {
+    w.document.write(html);
+    w.document.close();
+  } else {
+    alert("Brauzerda oyna ochishga ruxsat bering (Popup allowed)");
+  }
+};
+
+// 2. SOTUVNI YAKUNLASH FUNKSIYASI
+const handleCompleteSale = async () => {
+  if (!cart || cart.length === 0) {
+    return toast.error("Savat bo'sh!");
+  }
+
+  try {
+    setIsSubmitting(true);
+
+    // Barcha hisob-kitoblar Number() bilan tekshiriladi
+    const currentTotalAmount = cart.reduce((sum, item) => sum + (Number(item.price || 0) * Number(item.qty || 0)), 0);
+    const totalCost = cart.reduce((sum, item) => sum + (Number(item.cost || 0) * Number(item.qty || 0)), 0);
+
+    const saleId = Date.now();
+    const saleData = {
+      id: saleId,
+      date: new Date().toISOString(),
+      customerName: customerName || "Naqd mijoz",
+      customerPhone: customerPhone || "",
+      paymentMethod: paymentMethod,
+      totalAmount: currentTotalAmount,
+      profit: currentTotalAmount - totalCost,
+      items: cart.map(i => ({ ...i, qty: Number(i.qty), price: Number(i.price) }))
     };
 
-    const html = `
-      <html>
-        <head>
-          <title>Chek - ${receipt.id}</title>
-          <style>
-            @page { margin: 0; }
-            body { 
-              font-family: 'Arial', sans-serif; 
-              width: 100%; 
-              margin: 0; 
-              padding: 5mm; 
-              /* Chek oxirida qog'oz chiqib turishi uchun bo'shliq */
-              padding-bottom: 70mm; 
-              font-size: 14px; 
-              font-weight: 900; /* Maksimal qalin yozuv */
-              text-transform: uppercase;
-              color: #000;
-              line-height: 1.3;
-            }
-            .header { text-align: center; margin-bottom: 10px; }
-            .brand { font-size: 22px; font-weight: 900; margin-bottom: 4px; border: 2px solid #000; padding: 2px; }
-            .info { font-size: 12px; font-weight: bold; }
-            .line { border-top: 3px solid #000; margin: 8px 0; }
-            
-            table { width: 100%; border-collapse: collapse; }
-            th { text-align: left; font-size: 13px; border-bottom: 2px solid #000; padding-bottom: 4px; }
-            td { padding: 6px 0; vertical-align: top; font-size: 15px; font-weight: 900; }
-            .right { text-align: right; }
-            
-            .totals { margin-top: 10px; }
-            .total-row { 
-              display: flex; 
-              justify-content: space-between; 
-              font-size: 20px; 
-              font-weight: 900; 
-              border-top: 3px solid #000;
-              padding-top: 10px;
-            }
-            .footer { 
-              text-align: center; 
-              margin-top: 25px; 
-              font-size: 13px; 
-              border-top: 1px dashed #000;
-              padding-top: 10px;
-            }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div class="brand">${COMPANY_NAME}</div>
-            <div class="info">
-              ${ADDRESS}<br/>
-              TEL: ${PHONES}
-            </div>
-          </div>
+    // LocalStorage-ga saqlash
+    const currentSales = JSON.parse(localStorage.getItem("sales_history") || "[]");
+    localStorage.setItem("sales_history", JSON.stringify([...currentSales, saleData]));
 
-          <div class="line"></div>
-          
-          <div style="font-size: 13px; font-weight: 900;">
-            ID: #${receipt.id}<br/>
-            SANA: ${new Date().toLocaleString('uz-UZ')}<br/>
-            MIJOZ: ${receipt.customerName || "NAQD MIJOZ"}
-          </div>
+    // Zaxirani kamaytirish
+    const currentStock = JSON.parse(localStorage.getItem("warehouse_backup") || "[]");
+    const updatedStock = currentStock.map(stockItem => {
+      const soldItem = cart.find(c => String(c.id) === String(stockItem.productId || stockItem.id));
+      return soldItem ? { ...stockItem, currentStock: Number(stockItem.currentStock) - Number(soldItem.qty) } : stockItem;
+    });
+    localStorage.setItem("warehouse_backup", JSON.stringify(updatedStock));
 
-          <div class="line"></div>
-
-          <table>
-            <thead>
-              <tr>
-                <th width="45%">NOMI</th>
-                <th width="20%">KG</th>
-                <th width="35%" class="right">SUMMA</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${receipt.items.map(i => {
-                const itemTotal = Number(i.price) * Number(i.qty);
-                return `
-                  <tr>
-                    <td>${i.name}</td>
-                    <td>${Number(i.qty).toFixed(2)}</td>
-                    <td class="right">${formatPrice(itemTotal)}</td>
-                  </tr>
-                `;
-              }).join('')}
-            </tbody>
-          </table>
-
-          <div class="totals">
-            <div class="total-row">
-              <span>JAMI:</span>
-              <span>${formatPrice(receipt.total)}</span>
-            </div>
-            <div style="font-size: 14px; margin-top: 8px; font-weight: 900;">
-              TO'LOV: ${ (receipt.paymentMethod || "NAQD").toUpperCase() }
-            </div>
-          </div>
-
-          <div class="footer">
-            XARIDINGIZ UCHUN RAHMAT!<br/>
-            YANA KELIB TURING!
-          </div>
-
-          <script>
-            window.onload = () => {
-              window.print();
-              setTimeout(() => { window.close(); }, 500);
-            };
-          </script>
-        </body>
-      </html>`;
-
-    const w = window.open("", "_blank", "width=450,height=700");
-    if (w) {
-      w.document.write(html);
-      w.document.close();
-    } else {
-      alert("Brauzer oyna ochishni blokladi! Iltimos, ruxsat bering.");
+    // API yuborish (ixtiyoriy)
+    if (apiService?.createSale) {
+      await apiService.createSale(saleData).catch(e => console.log("API error ignored"));
     }
-  };
+
+    // CHEK CHIQARISH
+    printReceipt({
+      id: saleId,
+      customerName: saleData.customerName,
+      items: cart,
+      total: currentTotalAmount,
+      paymentMethod: paymentMethod
+    });
+
+    // Tozalash
+    setCart([]);
+    setCustomerName("");
+    setCustomerPhone("");
+    setView("list");
+    toast.success("Sotuv yakunlandi!");
+    if (typeof loadData === 'function') loadData();
+
+  } catch (err) {
+    console.error(err);
+    toast.error("Xatolik yuz berdi!");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
   const handleCompleteSale = async () => {
     if (!cart || cart.length === 0) return toast.error("Savat bo'sh!");
     
