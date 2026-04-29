@@ -49,7 +49,7 @@ export default function SalesPage() {
   const printReceipt = (receipt) => {
     const COMPANY_NAME = "SIFAT BROYLER 066";
     const ADDRESS = "Yozyovon tumani, Markaziy ko'cha";
-    const PHONES = "+998 90 123 45 67, +998 91 789 00 11";
+    const PHONES = "+998 94 806 00 66";
 
     // Narxlarni formatlash funksiyasi (000 chiqishini kafolatlaydi)
     const formatPrice = (num) => {
