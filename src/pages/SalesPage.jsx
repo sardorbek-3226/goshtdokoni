@@ -46,114 +46,104 @@ export default function SalesPage() {
       setLoading(false);
     }
   };
-// 1. CHEK CHIQARISH FUNKSIYASI (To'liq va xatosiz)
-const printReceipt = (receipt) => {
-  const COMPANY_NAME = "SIFAT BROYLER 066";
-  const ADDRESS = "Yozyovon tumani, Markaziy ko'cha";
-  const PHONES = "+998 90 123 45 67, +998 91 789 00 11";
+  const printReceipt = (receipt) => {
+    const COMPANY_NAME = "SIFAT BROYLER 066";
+    const PHONES = "+998 90 123 45 67, +998 91 789 00 11";
 
-  const html = `
-    <html>
-      <head>
-        <title>Chek - ${receipt.id}</title>
-        <style>
-          @page { margin: 0; }
-          body { 
-            font-family: 'Courier New', Courier, monospace; 
-            width: 100%; 
-            margin: 0; 
-            padding: 4mm; 
-            font-size: 12px;
-            text-transform: uppercase;
-            color: #000;
-          }
-          .header { text-align: center; margin-bottom: 8px; }
-          .brand { font-size: 16px; font-weight: bold; }
-          .info { font-size: 10px; line-height: 1.2; }
-          .line { border-top: 1px dashed #000; margin: 8px 0; }
-          table { width: 100%; border-collapse: collapse; }
-          th { text-align: left; font-size: 11px; border-bottom: 1px solid #000; }
-          td { padding: 4px 0; vertical-align: top; }
-          .right { text-align: right; }
-          .total-row { display: flex; justify-content: space-between; font-weight: bold; font-size: 14px; margin-top: 5px; }
-          .footer { text-align: center; margin-top: 15px; font-size: 10px; line-height: 1.4; }
-        </style>
-      </head>
-      <body>
-        <div class="header">
-          <div class="brand">${COMPANY_NAME}</div>
-          <div class="info">${ADDRESS}<br/>TEL: ${PHONES}</div>
-        </div>
+    const html = `
+      <html>
+        <head>
+          <style>
+            @page { 
+              margin: 0; 
+              size: auto; 
+            }
+            body { 
+              font-family: 'Courier New', monospace; 
+              width: 100%; 
+              margin: 0; 
+              padding: 5mm; /* Yonlardan bo'shliq */
+              padding-bottom: 50mm; /* MANA SHU QATOR: Chek oxirida 5 sm bo'sh joy tashlaydi */
+              font-size: 13px;
+              text-transform: uppercase;
+            }
+            .line { border-top: 1px dashed #000; margin: 5px 0; }
+            table { width: 100%; border-collapse: collapse; }
+            .right { text-align: right; }
+            .bold { font-weight: bold; font-size: 15px; }
+            /* Har bir element chiqishini kafolatlaydi */
+            div, table, tr { page-break-inside: avoid; } 
+          </style>
+        </head>
+        <body>
+          <div style="text-align: center;">
+            <div class="bold">${COMPANY_NAME}</div>
+            <div style="font-size: 10px;">YOZYOVON TUMANI</div>
+            <div style="font-size: 10px;">TEL: ${PHONES}</div>
+          </div>
 
-        <div class="line"></div>
-        
-        <div style="font-size: 11px;">
-          ID: #${receipt.id}<br/>
-          SANA: ${new Date().toLocaleString('uz-UZ')}<br/>
-          MIJOZ: ${receipt.customerName || "NAQD MIJOZ"}
-        </div>
+          <div class="line"></div>
+          
+          <div style="font-size: 11px;">
+            ID: #${receipt.id}<br/>
+            SANA: ${new Date().toLocaleString('uz-UZ')}<br/>
+            MIJOZ: ${receipt.customerName || "NAQD MIJOZ"}
+          </div>
 
-        <div class="line"></div>
+          <div class="line"></div>
 
-        <table>
-          <thead>
-            <tr>
-              <th width="50%">NOMI</th>
-              <th width="20%">KG</th>
-              <th width="30%" class="right">SUMMA</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${receipt.items.map(i => `
+          <table>
+            <thead>
               <tr>
-                <td>${i.name}</td>
-                <td>${Number(i.qty).toFixed(2)}</td>
-                <td class="right">${(Number(i.price) * Number(i.qty)).toLocaleString()}</td>
+                <th align="left">NOMI</th>
+                <th align="center">KG</th>
+                <th class="right">SUMMA</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
-@media print {
-  html, body {
-    height: auto;
-    overflow: visible;
-  }
-}
-        <div class="line"></div>
+            </thead>
+            <tbody>
+              ${receipt.items.map(i => `
+                <tr>
+                  <td>${i.name}</td>
+                  <td align="center">${Number(i.qty).toFixed(2)}</td>
+                  <td class="right">${(Number(i.price) * Number(i.qty)).toLocaleString()}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
 
-        <div class="total-row">
-          <span>JAMI:</span>
-          <span>${Number(receipt.total).toLocaleString()} UZS</span>
-        </div>
-        
-        <div style="font-size: 10px; margin-top: 5px;">
-          TO'LOV: ${ (receipt.paymentMethod || "NAQD").toUpperCase() }
-        </div>
+          <div class="line"></div>
 
-        <div class="line"></div>
+          <div style="display: flex; justify-content: space-between;" class="bold">
+            <span>JAMI:</span>
+            <span>${Number(receipt.total).toLocaleString()} UZS</span>
+          </div>
+          
+          <div style="margin-top: 5px;">
+            TO'LOV: ${(receipt.paymentMethod || "NAQD").toUpperCase()}
+          </div>
 
-        <div class="footer">
-          XARIDINGIZ UCHUN RAHMAT!<br/>
-          YANA KELIB TURING!
-        </div>
+          <div class="line"></div>
 
-        <script>
-          window.onload = () => {
-            window.print();
-            setTimeout(() => { window.close(); }, 300);
-          };
-        </script>
-      </body>
-    </html>`;
+          <div style="text-align: center; margin-top: 10px;">
+            XARIDINGIZ UCHUN RAHMAT!<br/>
+            YANA KELIB TURING!
+          </div>
 
-  const w = window.open("", "_blank", "width=400,height=600");
-  if (w) {
-    w.document.write(html);
-    w.document.close();
-  } else {
-    toast.error("Brauzer oyna ochishni taqiqladi (Popup blocked)!");
-  }
-};
+          <div style="height: 20px;"></div> <script>
+            window.onload = () => {
+              window.print();
+              setTimeout(() => { window.close(); }, 500);
+            };
+          </script>
+        </body>
+      </html>`;
+
+    const w = window.open("", "_blank", "width=400,height=600");
+    if (w) {
+      w.document.write(html);
+      w.document.close();
+    }
+  };
 
 // 2. SOTUVNI YAKUNLASH FUNKSIYASI (Xatosiz)
 const handleCompleteSale = async () => {
