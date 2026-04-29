@@ -113,7 +113,12 @@ const printReceipt = (receipt) => {
             `).join('')}
           </tbody>
         </table>
-
+@media print {
+  html, body {
+    height: auto;
+    overflow: visible;
+  }
+}
         <div class="line"></div>
 
         <div class="total-row">
