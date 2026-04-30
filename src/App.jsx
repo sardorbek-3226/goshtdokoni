@@ -11,7 +11,7 @@ import SalesPage from './pages/SalesPage';
 import DebtsPage from './pages/DebtsPage';
 import ReportsPage from './pages/ReportsPage';
 import ProfilePage from './pages/ProfilePage';
-
+import CashFlowPage from './pages/CashFlowPage';
 const Protected = ({ children }) => {
   const token = localStorage.getItem('user_token');
   return token ? children : <Navigate to="/login" />;
@@ -25,6 +25,7 @@ export default function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/" element={<Protected><MainLayout /></Protected>}>
           <Route index element={<DashboardPage />} />
+          <Route path="/cashflow" element={<CashFlowPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="warehouse" element={<WarehousePage />} />
           <Route path="sales" element={<SalesPage />} />
