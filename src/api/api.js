@@ -8,37 +8,26 @@ const api = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem("user_token");
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("user_token");
 
-    if (token && token !== "undefined" && token !== "null") {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+  if (token && token !== "undefined" && token !== "null") {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
 
-    console.log("➡️ API REQUEST:", {
-      url: config.url,
-      method: config.method,
-      data: config.data,
-      token,
-    });
-
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
+  return config;
+});
 
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
     const message = error.response?.data?.message || "Tizim xatosi yuz berdi";
 
-    console.error("❌ API ERROR:", {
+    console.error("API ERROR:", {
       url: error.config?.url,
       status: error.response?.status,
       message,
       data: error.response?.data,
-      sentData: error.config?.data,
     });
 
     if (
@@ -61,72 +50,72 @@ export const toArray = (data) => {
   if (Array.isArray(data.data)) return data.data;
   if (Array.isArray(data.items)) return data.items;
   if (Array.isArray(data.result)) return data.result;
+  if (Array.isArray(data.products)) return data.products;
+  if (Array.isArray(data.warehouse)) return data.warehouse;
   return [];
 };
 
-export const normalizeProduct = (p) => {
+export const normalizeProduct = (p = {}) => {
   const product = p.product || p.Product || {};
 
-  return {
-    id: String(p.id ?? p.productId ?? product.id ?? ""),
-    productId: String(p.productId ?? p.product_id ?? product.id ?? p.id ?? ""),
-    name: p.name || product.name || "Nomsiz mahsulot",
-    tannarx: Number(p.tannarx ?? p.cost ?? product.tannarx ?? 0),
-    sotish: Number(p.sotish ?? p.price ?? product.sotish ?? 0),
-    cost: Number(p.cost ?? p.tannarx ?? product.tannarx ?? 0),
-    price: Number(p.price ?? p.sotish ?? product.sotish ?? 0),
-    category: p.category || product.category || "Go'sht",
-    quantityKg: Number(
+  const id = p.id ?? p.productId ?? p.product_id ?? product.id ?? "";
+
+  const price = Number(
+    p.sotish ?? p.price ?? p.sellingPrice ?? product.sotish ?? product.price ?? 0
+  );
+
+  const cost = Number(
+    p.tannarx ?? p.cost ?? product.tannarx ?? product.cost ?? 0
+  );
+
+  const stock = Number(
+    p.currentStock ??
       p.quantityKg ??
-        p.currentStock ??
-        p.stock ??
-        p.quantity ??
-        p.qty ??
-        product.quantityKg ??
-        product.currentStock ??
-        0
-    ),
-    currentStock: Number(
-      p.currentStock ??
-        p.quantityKg ??
-        p.stock ??
-        p.quantity ??
-        p.qty ??
-        product.currentStock ??
-        product.quantityKg ??
-        0
-    ),
+      p.stock ??
+      p.quantity ??
+      p.qty ??
+      product.currentStock ??
+      product.quantityKg ??
+      0
+  );
+
+  return {
+    ...p,
+    id: String(id),
+    productId: String(p.productId ?? p.product_id ?? id),
+    name: p.name || product.name || "Nomsiz mahsulot",
+    category: p.category || product.category || "Go'sht",
+    price,
+    sotish: price,
+    cost,
+    tannarx: cost,
+    currentStock: stock,
+    quantityKg: stock,
   };
 };
 
-export const mergeProductsWithWarehouse = (products = [], warehouse = []) => {
-  const normalizedProducts = products.map(normalizeProduct);
-  const normalizedWarehouse = warehouse.map(normalizeProduct);
+export const mergeProductsWithWarehouse = (productsData, warehouseData) => {
+  const products = toArray(productsData).map(normalizeProduct);
+  const warehouse = toArray(warehouseData).map(normalizeProduct);
 
-  return normalizedProducts.map((product) => {
-    const stockItem = normalizedWarehouse.find((w) => {
+  return products.map((product) => {
+    const stockItem = warehouse.find((w) => {
       return (
         String(w.productId) === String(product.id) ||
         String(w.productId) === String(product.productId) ||
         String(w.id) === String(product.id) ||
         String(w.id) === String(product.productId) ||
-        String(w.name || "").toLowerCase() ===
-          String(product.name || "").toLowerCase()
+        String(w.name || "").toLowerCase().trim() ===
+          String(product.name || "").toLowerCase().trim()
       );
     });
 
-    const stock = Number(
-      stockItem?.currentStock ??
-        stockItem?.quantityKg ??
-        stockItem?.stock ??
-        stockItem?.quantity ??
-        product.currentStock ??
-        0
-    );
+    const stock = stockItem
+      ? Number(stockItem.currentStock || stockItem.quantityKg || 0)
+      : Number(product.currentStock || product.quantityKg || 0);
 
     return {
       ...product,
-      productId: String(product.productId || product.id),
       currentStock: stock,
       quantityKg: stock,
     };
@@ -134,48 +123,6 @@ export const mergeProductsWithWarehouse = (products = [], warehouse = []) => {
 };
 
 export const apiService = {
-  getProducts: async () => {
-    const res = await api.get("/products");
-    // Agar res.data bo'lsa shuni, bo'lmasa res'ni olamiz. Har doim massiv bo'lishini ta'minlaymiz.
-    return Array.isArray(res) ? res : (res?.data || []);
-  },
-
-  // OMBOR QOLDIG'INI OLISH
-  getWarehouseStock: async () => {
-    const res = await api.get("/warehouse/current");
-    return Array.isArray(res) ? res : (res?.data || []);
-  },
-
-  // MAHSULOT + OMBOR (Sales va Warehouse uchun)
-  getProductsWithStock: async () => {
-    try {
-      const products = await apiService.getProducts();
-      const stock = await apiService.getWarehouseStock();
-
-      // BU YERDA XATO BERAYOTGAN EDI: endi products har doim massiv
-      return products.map(p => {
-        const s = stock.find(item => String(item.productId) === String(p.id));
-        return {
-          ...p,
-          productId: String(p.id),
-          currentStock: s ? Number(s.quantityKg || s.quantity || 0) : 0
-        };
-      });
-    } catch (err) {
-      console.error("MERGE ERROR:", err);
-      return [];
-    }
-  },
-
-  // KIRIM QILISH (400 xatosini yo'qotish uchun)
-// api.js ichidagi addStock funksiyasini shu bilan almashtiring:
-// api.js ichidagi funksiya
-addStock: (data) => {
-  return api.post("/warehouse/receive", {
-    productId: String(data.productId), // ID string bo'lishi shart
-    quantityKg: Number(data.weight)    // Vazn musbat son bo'lishi shart
-  });
-},
   login: async (credentials) => {
     const res = await api.post("/auth/login", {
       email: String(credentials.email || "").trim(),
@@ -190,9 +137,7 @@ addStock: (data) => {
       res?.data?.accessToken ||
       res?.data?.access_token;
 
-    if (!token) {
-      throw new Error("Token kelmadi!");
-    }
+    if (!token) throw new Error("Token kelmadi!");
 
     localStorage.setItem("user_token", token);
     localStorage.setItem("isLoggedIn", "true");
@@ -207,49 +152,34 @@ addStock: (data) => {
   },
 
   getProducts: async () => {
-    try {
-      const res = await api.get("/products");
-      // Agar res.data bo'lsa shuni, bo'lmasa resni qaytaramiz (massiv holatida)
-      return Array.isArray(res) ? res : (res?.data || []);
-    } catch (err) {
-      console.error("API Error:", err);
-      return []; // Xato bo'lsa bo'sh massiv qaytaramiz
-    }
+    const res = await api.get("/products");
+    return toArray(res).map(normalizeProduct);
   },
-
-  // Ombor qoldig'ini olish (bu shart emas, chunki localedan olamiz, lekin tursin)
-  getWarehouseStock: () => api.get("/warehouse/current"),
 
   getAllProducts: async () => {
     return apiService.getProducts();
   },
 
   addProduct: async (data) => {
-    const payload = {
+    return api.post("/products", {
       name: String(data.name || "").trim(),
-      tannarx: Number(data.tannarx || 0),
-      sotish: Number(data.sotish || 0),
+      tannarx: Number(data.tannarx || data.cost || 0),
+      sotish: Number(data.sotish || data.price || 0),
       category: data.category || "Go'sht",
-    };
-
-    return api.post("/products", payload);
+    });
   },
-
   updateProduct: async (id, data) => {
-    const payload = {
+    return api.put(`/products/${id}`, {
       name: String(data.name || "").trim(),
       tannarx: Number(data.tannarx ?? data.cost ?? 0),
       sotish: Number(data.sotish ?? data.price ?? 0),
       category: data.category || "Go'sht",
-    };
-
-    return api.put(`/products/update/${id}`, payload);
+    });
   },
-
-  updateProductPrice: async (id, newPrice, newCost) => {
+  updateProductPrice: async (id, price, cost) => {
     return api.put(`/products/update/${id}`, {
-      tannarx: Number(newCost),
-      sotish: Number(newPrice),
+      tannarx: Number(cost),
+      sotish: Number(price),
     });
   },
 
@@ -257,51 +187,71 @@ addStock: (data) => {
     return api.delete(`/products/delete/${id}`);
   },
 
-  // WAREHOUSE
   getWarehouse: async () => {
     const res = await api.get("/warehouse/current");
     return toArray(res).map(normalizeProduct);
   },
 
   getWarehouseStock: async () => {
-    return apiService.getWarehouse();
+    const res = await api.get("/warehouse/current");
+    return toArray(res).map(normalizeProduct);
+  },
+
+  getProductsWithStock: async () => {
+    try {
+      const productsRes = await apiService.getProducts();
+      const warehouseRes = await apiService.getWarehouseStock();
+  
+      const products = toArray(productsRes).map(normalizeProduct);
+      const warehouse = toArray(warehouseRes).map(normalizeProduct);
+  
+      return products.map((product) => {
+        const stockItem = warehouse.find((w) => {
+          return (
+            String(w.productId) === String(product.id) ||
+            String(w.productId) === String(product.productId) ||
+            String(w.id) === String(product.id) ||
+            String(w.name).toLowerCase() === String(product.name).toLowerCase()
+          );
+        });
+  
+        const stock = Number(
+          stockItem?.currentStock ||
+          stockItem?.quantityKg ||
+          stockItem?.quantity ||
+          stockItem?.stock ||
+          0
+        );
+  
+        return {
+          ...product,
+          currentStock: stock,
+          quantityKg: stock,
+        };
+      });
+    } catch (err) {
+      console.error("GET PRODUCTS WITH STOCK ERROR:", err);
+      return [];
+    }
   },
 
   receiveStock: async (data) => {
-    const payload = {
-      productId: String(data.productId || data.id || ""),
-      quantityKg: Number(data.quantityKg || data.weight || data.qty || 0),
-    };
+    const productId = String(data.productId || data.id || "");
+    const quantityKg = Number(data.quantityKg || data.weight || data.qty || 0);
 
-    if (!payload.productId) {
-      throw new Error("productId topilmadi!");
-    }
+    if (!productId) throw new Error("productId topilmadi!");
+    if (!quantityKg || quantityKg <= 0) throw new Error("quantityKg noto‘g‘ri!");
 
-    if (!payload.quantityKg || payload.quantityKg <= 0) {
-      throw new Error("quantityKg noto‘g‘ri!");
-    }
-
-    const res = await api.post("/warehouse/receive", payload);
-
-    console.log("✅ KIRIM JAVOBI:", res);
-
-    return res;
+    return api.post("/warehouse/receive", {
+      productId,
+      quantityKg,
+    });
   },
 
   addStock: async (data) => {
     return apiService.receiveStock(data);
   },
 
-  getProductsWithStock: async () => {
-    const [products, warehouse] = await Promise.all([
-      apiService.getProducts(),
-      apiService.getWarehouse(),
-    ]);
-
-    return mergeProductsWithWarehouse(products, warehouse);
-  },
-
-  // SALES
   createSale: async (data) => {
     const payload = {
       items: (data.items || []).map((item) => ({
@@ -311,17 +261,13 @@ addStock: (data) => {
       paymentMethod: String(data.paymentMethod || "NAQD").toUpperCase(),
     };
 
+    if (!payload.items.length) throw new Error("Savat bo‘sh!");
+
     const invalid = payload.items.find(
       (item) => !item.productId || !item.quantityKg || item.quantityKg <= 0
     );
 
-    if (!payload.items.length) {
-      throw new Error("Savat bo‘sh!");
-    }
-
-    if (invalid) {
-      throw new Error("Mahsulot yoki kg noto‘g‘ri!");
-    }
+    if (invalid) throw new Error("Mahsulot yoki kg noto‘g‘ri!");
 
     return api.post("/sale", payload);
   },
@@ -339,10 +285,13 @@ addStock: (data) => {
     }
   },
 
-  // DEBTS
   getDebtors: async () => {
-    const res = await api.get("/debt");
-    return toArray(res);
+    try {
+      const res = await api.get("/debt");
+      return toArray(res);
+    } catch {
+      return [];
+    }
   },
 
   getDebts: async () => {
@@ -350,12 +299,10 @@ addStock: (data) => {
   },
 
   addDebtCustomer: async (data) => {
-    const payload = {
+    return api.post("/debt/customer", {
       name: String(data.name || "").trim(),
       phone: String(data.phone || "").replace(/\s+/g, "").trim(),
-    };
-
-    return api.post("/debt/customer", payload);
+    });
   },
 
   payDebt: async (id, amount) => {
@@ -366,45 +313,23 @@ addStock: (data) => {
 
   getDebtHistory: async (id) => {
     try {
-      return api.get(`/debt/history/${id}`);
+      const res = await api.get(`/debt/history/${id}`);
+      return toArray(res);
     } catch {
       return [];
     }
   },
-  getProducts: () => api.get("/products"),
 
-  // Ombor qoldig'ini olish
-  getWarehouseStock: () => api.get("/warehouse/current"),
+  getStats: async (period = "bugun") => {
+    const allowed = ["bugun", "kecha", "hafta", "oy"];
+    const safePeriod = allowed.includes(period) ? period : "bugun";
+    return api.get(`/report?period=${safePeriod}`);
+  },
 
-  // Yangi yuk qabul qilish (Kirim)
-  addStock: (data) => api.post("/warehouse/receive", {
-    productId: String(data.productId),
-    quantityKg: Number(data.quantityKg)
-  }),
-
-  // Narxni yangilash
-  updateProductPrice: (id, price, cost) => api.put(`/products/${id}`, {
-    price: Number(price),
-    cost: Number(cost)
-  }),
-
-// src/api/api.js ichidagi getStats qismini toping va almashtiring:
-
-// src/api/api.js faylidagi getStats funksiyasini toping va mana buni qo'ying:
-
-// api.js ichidagi getStats funksiyasini shunga almashtiring:
-getStats: async (period = "bugun") => {
-  const allowed = ["bugun", "kecha", "hafta", "oy"];
-  const safePeriod = allowed.includes(period) ? period : "bugun";
-
-  return api.get(`/report?period=${safePeriod}`);
-},
-  // RECEIPT
   getReceipt: async (id) => {
     return api.get(`/receipt/${id}`);
   },
 
-  // PROFILE
   getProfile: async () => {
     return api.get("/profile");
   },
@@ -421,9 +346,7 @@ getStats: async (period = "bugun") => {
     formData.append("file", file);
 
     return api.put("/profile/photo", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      },
+      headers: { "Content-Type": "multipart/form-data" },
     });
   },
 };
