@@ -50,8 +50,8 @@ export default function SalesPage() {
  // 1. CHEK CHIQARISH FUNKSIYASI
  const printReceipt = (receipt) => {
   const COMPANY_NAME = "SIFAT BROYLER 066";
-  const ADDRESS = "Yozyovon tumani, Markaziy ko'cha";
-  const PHONES = "+998 90 123 45 67, +998 91 789 00 11";
+  const ADDRESS = "Yozyovon tumani";
+  const PHONES = "+998 94 806 00 66, +998 90 301 17 11";
 
   const formatNumber = (num) => {
     return new Intl.NumberFormat("uz-UZ").format(
