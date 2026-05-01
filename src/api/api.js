@@ -169,7 +169,7 @@ export const apiService = {
     });
   },
   updateProduct: async (id, data) => {
-    return api.put(`/products/${id}`, {
+    return api.put(`/products/update/${id}`, {
       name: String(data.name || "").trim(),
       tannarx: Number(data.tannarx ?? data.cost ?? 0),
       sotish: Number(data.sotish ?? data.price ?? 0),

@@ -50,16 +50,23 @@ export default function SalesPage() {
  // 1. CHEK CHIQARISH FUNKSIYASI
  const printReceipt = (receipt) => {
   const COMPANY_NAME = "SIFAT BROYLER 066";
-  const ADDRESS = "Yozyovon tumani";
-  const PHONES = "+998 94 806 00 66, +998 90 301 17 11";
+  const ADDRESS = "Yozyovon tumani, Markaziy ko'cha";
+  const PHONES = "+998 90 123 45 67, +998 91 789 00 11";
 
   const formatNumber = (num) => {
-    return new Intl.NumberFormat("uz-UZ").format(
-      Math.round(Number(num || 0))
-    );
+    return new Intl.NumberFormat("uz-UZ").format(Math.round(Number(num || 0)));
   };
 
-  const isDebt = receipt.paymentMethod === "nasiya";
+  const paymentMethod = String(receipt.paymentMethod || "naqd").toLowerCase();
+
+  const oldDebt = Number(receipt.oldDebt || 0);
+  const newDebt = paymentMethod === "nasiya" ? Number(receipt.total || 0) : 0;
+  const totalDebt =
+    paymentMethod === "nasiya"
+      ? oldDebt + newDebt
+      : Number(receipt.totalDebt || oldDebt || 0);
+
+  const hasDebt = oldDebt > 0 || totalDebt > 0;
 
   const html = `
     <html>
@@ -87,9 +94,7 @@ export default function SalesPage() {
             overflow-wrap: break-word;
           }
 
-          .center {
-            text-align: center;
-          }
+          .center { text-align: center; }
 
           .brand {
             font-size: 18px;
@@ -97,13 +102,11 @@ export default function SalesPage() {
             border-bottom: 3px solid #000;
             margin-bottom: 5px;
             padding-bottom: 5px;
-            word-break: break-word;
           }
 
           .info {
             font-size: 11px;
             line-height: 1.35;
-            word-break: break-word;
           }
 
           .line {
@@ -114,7 +117,6 @@ export default function SalesPage() {
           .sale-info {
             font-size: 12px;
             line-height: 1.45;
-            word-break: break-word;
           }
 
           table {
@@ -127,34 +129,21 @@ export default function SalesPage() {
             text-align: left;
             border-bottom: 2px solid #000;
             padding-bottom: 5px;
-            font-size: 11px;
+            font-size: 10px;
           }
 
           td {
             padding: 6px 0;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 900;
             vertical-align: top;
             word-break: break-word;
           }
 
-          .right {
-            text-align: right;
-          }
-
-          .product-name {
-            width: 42%;
-          }
-
-          .product-kg {
-            width: 18%;
-            text-align: center;
-          }
-
-          .product-summa {
-            width: 40%;
-            text-align: right;
-          }
+          .name-col { width: 34%; }
+          .kg-col { width: 14%; text-align: center; }
+          .price-col { width: 24%; text-align: right; }
+          .sum-col { width: 28%; text-align: right; }
 
           .total-section {
             margin-top: 10px;
@@ -168,11 +157,6 @@ export default function SalesPage() {
             gap: 8px;
             font-size: 16px;
             font-weight: 900;
-            word-break: break-word;
-          }
-
-          .total-row span:last-child {
-            text-align: right;
           }
 
           .debt-box {
@@ -181,7 +165,6 @@ export default function SalesPage() {
             border: 3px solid #000;
             font-size: 12px;
             line-height: 1.5;
-            word-break: break-word;
           }
 
           .debt-row {
@@ -225,7 +208,8 @@ export default function SalesPage() {
           ID: #${receipt.id || "---"}<br/>
           SANA: ${new Date().toLocaleString("uz-UZ")}<br/>
           MIJOZ: ${receipt.customerName || "NAQD MIJOZ"}<br/>
-          TO'LOV: ${(receipt.paymentMethod || "NAQD").toUpperCase()}
+          TEL: ${receipt.customerPhone || "---"}<br/>
+          TO'LOV: ${paymentMethod.toUpperCase()}
         </div>
 
         <div class="line"></div>
@@ -233,25 +217,29 @@ export default function SalesPage() {
         <table>
           <thead>
             <tr>
-              <th class="product-name">NOMI</th>
-              <th class="product-kg">KG</th>
-              <th class="product-summa">SUMMA</th>
+              <th class="name-col">NOMI</th>
+              <th class="kg-col">KG</th>
+              <th class="price-col">NARX</th>
+              <th class="sum-col">SUMMA</th>
             </tr>
           </thead>
 
           <tbody>
             ${(receipt.items || [])
-              .map(
-                (i) => `
-                <tr>
-                  <td class="product-name">${i.name || ""}</td>
-                  <td class="product-kg">${Number(i.qty || 0).toFixed(2)}</td>
-                  <td class="product-summa">
-                    ${formatNumber(Number(i.price || 0) * Number(i.qty || 0))}
-                  </td>
-                </tr>
-              `
-              )
+              .map((i) => {
+                const qty = Number(i.qty || i.quantityKg || 0);
+                const price = Number(i.price || i.sotish || 0);
+                const summa = qty * price;
+
+                return `
+                  <tr>
+                    <td class="name-col">${i.name || ""}</td>
+                    <td class="kg-col">${qty.toFixed(2)}</td>
+                    <td class="price-col">${formatNumber(price)}</td>
+                    <td class="sum-col">${formatNumber(summa)}</td>
+                  </tr>
+                `;
+              })
               .join("")}
           </tbody>
         </table>
@@ -263,25 +251,34 @@ export default function SalesPage() {
           </div>
 
           ${
-            isDebt
+            hasDebt
               ? `
               <div class="debt-box">
                 <div class="debt-row">
                   <span>OLDINGI QARZ:</span>
-                  <span>${formatNumber(receipt.oldDebt || 0)} UZS</span>
+                  <span>${formatNumber(oldDebt)} UZS</span>
                 </div>
 
-                <div class="debt-row">
-                  <span>YANGI QARZ:</span>
-                  <span>${formatNumber(receipt.total || 0)} UZS</span>
-                </div>
+                ${
+                  paymentMethod === "nasiya"
+                    ? `
+                    <div class="debt-row">
+                      <span>YANGI QARZ:</span>
+                      <span>${formatNumber(newDebt)} UZS</span>
+                    </div>
 
-                <div class="debt-row debt-total">
-                  <span>UMUMIY QARZ:</span>
-                  <span>${formatNumber(
-                    receipt.totalDebt || receipt.total || 0
-                  )} UZS</span>
-                </div>
+                    <div class="debt-row debt-total">
+                      <span>UMUMIY QARZ:</span>
+                      <span>${formatNumber(totalDebt)} UZS</span>
+                    </div>
+                  `
+                    : `
+                    <div class="debt-row debt-total">
+                      <span>HOZIRGI QARZ:</span>
+                      <span>${formatNumber(totalDebt)} UZS</span>
+                    </div>
+                  `
+                }
               </div>
             `
               : ""
@@ -316,20 +313,14 @@ export default function SalesPage() {
 };
 
 
+
+
+
+
 // 2. SOTUVNI YAKUNLASH FUNKSIYASI
 const handleCompleteSale = async () => {
   if (!cart || cart.length === 0) {
     return toast.error("Savat bo'sh!");
-  }
-
-  if (paymentMethod === "nasiya") {
-    if (!customerName.trim()) {
-      return toast.error("Nasiya uchun mijoz ismini kiriting!");
-    }
-
-    if (!customerPhone.trim()) {
-      return toast.error("Nasiya uchun telefon raqam kiriting!");
-    }
   }
 
   try {
@@ -347,69 +338,70 @@ const handleCompleteSale = async () => {
 
     const saleId = Date.now();
 
+    // 🔥 HAR DOIM QARZNI TEKSHIRAMIZ (naqd/karta bo‘lsa ham)
+    const debts = JSON.parse(localStorage.getItem("debts") || "[]");
+
+    const name = customerName.trim().toLowerCase();
+    const phone = customerPhone.replace(/\s+/g, "").trim();
+
+    const existingIndex = debts.findIndex((d) => {
+      const dName = String(d.customerName || d.name || "")
+        .trim()
+        .toLowerCase();
+
+      return dName === name;
+    });
+
     let oldDebt = 0;
     let totalDebt = 0;
 
-    // NASIYA QO‘SHISH
+    if (existingIndex >= 0) {
+      oldDebt = Number(
+        debts[existingIndex].remainingDebt ||
+        debts[existingIndex].totalDebt ||
+        0
+      );
+    }
+
+    // 🔥 faqat nasiya bo‘lsa qarzga qo‘shiladi
     if (paymentMethod === "nasiya") {
-      const debts = JSON.parse(localStorage.getItem("debts") || "[]");
+      if (!customerName.trim()) {
+        return toast.error("Nasiya uchun mijoz ismini kiriting!");
+      }
 
-      const name = customerName.trim();
-      const phone = customerPhone.replace(/\s+/g, "").trim();
-
-      const existingIndex = debts.findIndex((d) => {
-        const dName = String(d.customerName || d.name || "")
-          .trim()
-          .toLowerCase();
-
-        const dPhone = String(d.phone || "")
-          .replace(/\s+/g, "")
-          .trim();
-
-        return dName === name.toLowerCase() && dPhone === phone;
-      });
+      if (!customerPhone.trim()) {
+        return toast.error("Nasiya uchun telefon raqam kiriting!");
+      }
 
       if (existingIndex >= 0) {
-        oldDebt = Number(
-          debts[existingIndex].remainingDebt ||
-            debts[existingIndex].totalDebt ||
-            0
-        );
-
         totalDebt = oldDebt + currentTotalAmount;
 
         debts[existingIndex] = {
           ...debts[existingIndex],
-          customerName: name,
-          name,
+          customerName: customerName,
           phone,
-          totalDebt:
-            Number(debts[existingIndex].totalDebt || 0) + currentTotalAmount,
-          remainingDebt:
-            Number(debts[existingIndex].remainingDebt || 0) +
-            currentTotalAmount,
+          totalDebt: oldDebt + currentTotalAmount,
+          remainingDebt: oldDebt + currentTotalAmount,
           lastUpdate: new Date().toLocaleString(),
           items: [...(debts[existingIndex].items || []), ...cart],
         };
       } else {
-        oldDebt = 0;
         totalDebt = currentTotalAmount;
 
         debts.push({
           id: saleId,
-          customerName: name,
-          name,
+          customerName: customerName,
           phone,
           totalDebt: currentTotalAmount,
           remainingDebt: currentTotalAmount,
-          paidAmount: 0,
-          date: new Date().toISOString(),
-          lastUpdate: new Date().toLocaleString(),
           items: [...cart],
         });
       }
 
       localStorage.setItem("debts", JSON.stringify(debts));
+    } else {
+      // 🔥 naqd/karta bo‘lsa qarz qo‘shilmaydi
+      totalDebt = oldDebt;
     }
 
     const saleData = {
@@ -422,11 +414,7 @@ const handleCompleteSale = async () => {
       profit: currentTotalAmount - totalCost,
       oldDebt,
       totalDebt,
-      items: cart.map((i) => ({
-        ...i,
-        qty: Number(i.qty),
-        price: Number(i.price),
-      })),
+      items: cart,
     };
 
     const currentSales = JSON.parse(
@@ -438,33 +426,7 @@ const handleCompleteSale = async () => {
       JSON.stringify([...currentSales, saleData])
     );
 
-    // OMBORDAN KAMAYTIRISH
-    const currentStock = JSON.parse(
-      localStorage.getItem("warehouse_backup") || "[]"
-    );
-
-    const updatedStock = currentStock.map((stockItem) => {
-      const soldItem = cart.find(
-        (c) => String(c.id) === String(stockItem.productId || stockItem.id)
-      );
-
-      return soldItem
-        ? {
-            ...stockItem,
-            currentStock:
-              Number(stockItem.currentStock || 0) - Number(soldItem.qty || 0),
-          }
-        : stockItem;
-    });
-
-    localStorage.setItem("warehouse_backup", JSON.stringify(updatedStock));
-
-    if (apiService?.createSale) {
-      await apiService.createSale(saleData).catch(() => {
-        console.log("API error ignored");
-      });
-    }
-
+    // 🔥 CHECKGA QARZNI UZATAMIZ
     printReceipt({
       id: saleId,
       customerName: saleData.customerName,

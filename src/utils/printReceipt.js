@@ -1,45 +1,27 @@
-import qz from "qz-tray";
+const printReceipt = (data) => {
+  console.log("PRINT:", data);
 
-export async function printReceipt(sale) {
-  try {
-    if (!qz.websocket.isActive()) {
-      await qz.websocket.connect();
-    }
+  const win = window.open("", "PRINT", "width=400,height=600");
 
-    // Printer nomi control printers dagi nom bilan bir xil bo‘lsin
-    const printerName = "Xprinter";
-    const config = qz.configs.create(printerName);
+  win.document.write(`
+    <html>
+      <head>
+        <title>Chek</title>
+        <style>
+          body { font-family: sans-serif; padding: 10px; }
+        </style>
+      </head>
+      <body>
+        <h3>Chek</h3>
+        <p>Jami: ${data.total}</p>
+        <p>Eski qarz: ${data.oldDebt}</p>
+        <p>Umumiy qarz: ${data.totalDebt}</p>
+      </body>
+    </html>
+  `);
 
-    const itemsText = sale.items
-      .map(
-        (item) =>
-          `${item.name}\n${item.quantityKg} kg x ${item.price} = ${item.total}\n`
-      )
-      .join("");
+  win.document.close();
+  win.print();
+};
 
-    const data = [
-      "\x1B\x40", // printer reset
-      "\x1B\x61\x01", // center
-      "SIFAT BROYLER 006\n",
-      "--------------------------\n",
-      "\x1B\x61\x00", // left
-      `Sana: ${new Date().toLocaleString()}\n`,
-      "--------------------------\n",
-      itemsText,
-      "--------------------------\n",
-      `Jami: ${sale.total} so'm\n`,
-      `To'lov: ${sale.paymentMethod}\n`,
-      "\nRahmat!\n\n\n",
-      "\x1D\x56\x00", // cut
-    ];
-
-    await qz.print(config, data);
-
-    if (qz.websocket.isActive()) {
-      await qz.websocket.disconnect();
-    }
-  } catch (error) {
-    console.error("Print error:", error);
-    alert("Chek chiqarishda xatolik bo‘ldi");
-  }
-}
+export default printReceipt;
