@@ -13,7 +13,9 @@ export default function Dashboard() {
     totalProfit: 0,
     activeDebts: 0,
     receivedDebtPayments: 0,
+    realSalesIncome: 0,
     netCashFlow: 0,
+    totalExpectedMoney: 0,
   });
 
   useEffect(() => {
@@ -21,46 +23,73 @@ export default function Dashboard() {
     const debts = JSON.parse(localStorage.getItem("debts") || "[]");
     const payments = JSON.parse(localStorage.getItem("payment_history") || "[]");
 
-    const totalSales = sales.reduce(
-      (sum, s) => sum + Number(s.totalAmount || 0),
-      0
-    );
+    // HAMMA SAVDO: naqd + karta + nasiya
+    const totalSales = sales.reduce((sum, s) => {
+      return sum + Number(s.totalAmount || s.total || 0);
+    }, 0);
 
-    const totalProfit = sales.reduce((sum, s) => {
-      const saleProfit =
-        s.items?.reduce((itemSum, item) => {
-          const qty = Number(item.qty || item.quantityKg || 0);
-          const sotish = Number(item.price || item.sotish || 0);
-          const tannarx = Number(item.cost || item.tannarx || 0);
+    // FOYDA: nasiya bo‘lsa ham foydani hisoblaydi
+    const totalProfit = sales.reduce((sum, sale) => {
+      const items = sale.items || [];
 
-          return itemSum + (sotish - tannarx) * qty;
-        }, 0) || 0;
+      const saleProfit = items.reduce((itemSum, item) => {
+        const qty = Number(item.qty || item.quantityKg || item.quantity || 0);
+
+        const sellPrice = Number(
+          item.price || item.sotish || item.sellPrice || 0
+        );
+
+        const costPrice = Number(
+          item.cost || item.tannarx || item.costPrice || 0
+        );
+
+        return itemSum + (sellPrice - costPrice) * qty;
+      }, 0);
 
       return sum + saleProfit;
     }, 0);
 
-    const activeDebts = debts.reduce(
-      (sum, d) => sum + Number(d.remainingDebt || 0),
-      0
-    );
+    // HOZIRGACHA OLINMAGAN QARZLAR
+    const activeDebts = debts.reduce((sum, d) => {
+      return (
+        sum +
+        Number(
+          d.remainingDebt ||
+            d.remaining ||
+            d.debt ||
+            d.amount ||
+            d.totalDebt ||
+            0
+        )
+      );
+    }, 0);
 
-    const receivedDebtPayments = payments.reduce(
-      (sum, p) => sum + Number(p.amount || 0),
-      0
-    );
+    // QARZDAN KELIB TUSHGAN PULLAR
+    const receivedDebtPayments = payments.reduce((sum, p) => {
+      return sum + Number(p.amount || p.paidAmount || 0);
+    }, 0);
 
+    // FAQAT NAQD/KARTA SAVDOLAR
     const realSalesIncome = sales
       .filter((s) => s.paymentMethod !== "nasiya")
-      .reduce((sum, s) => sum + Number(s.totalAmount || 0), 0);
+      .reduce((sum, s) => {
+        return sum + Number(s.totalAmount || s.total || 0);
+      }, 0);
 
+    // REAL KELGAN PUL: naqd/karta + olingan qarz
     const netCashFlow = realSalesIncome + receivedDebtPayments;
+
+    // KUTILAYOTGAN UMUMIY PUL: kelgan pul + hali olinadigan qarz
+    const totalExpectedMoney = netCashFlow + activeDebts;
 
     setStats({
       totalSales,
       totalProfit,
       activeDebts,
       receivedDebtPayments,
+      realSalesIncome,
       netCashFlow,
+      totalExpectedMoney,
     });
   }, []);
 
@@ -85,14 +114,14 @@ export default function Dashboard() {
               <Banknote size={24} />
             </div>
             <p className="text-[10px] uppercase text-emerald-100 mb-1 font-black">
-              Jami Naqd Pul Oqimi
+              Real Kelgan Pul
             </p>
             <h2 className="text-3xl font-black tracking-tight">
               {stats.netCashFlow.toLocaleString()}{" "}
               <span className="text-sm">UZS</span>
             </h2>
             <p className="text-[9px] mt-2 opacity-70 italic text-white uppercase">
-              Savdo + Undirilgan qarzlar
+              Naqd/karta savdo + olingan qarzlar
             </p>
           </div>
 
@@ -107,7 +136,7 @@ export default function Dashboard() {
               {stats.receivedDebtPayments.toLocaleString()} UZS
             </h2>
             <p className="text-[10px] text-blue-500 mt-2 uppercase">
-              Qarzdan tushgan pul
+              Qarzdor mijozlardan olingan pul
             </p>
           </div>
 
@@ -116,13 +145,13 @@ export default function Dashboard() {
               <AlertCircle size={24} />
             </div>
             <p className="text-[10px] uppercase text-slate-400 mb-1">
-              Hali olinishi kerak
+              Hali Olinishi Kerak
             </p>
             <h2 className="text-2xl font-black text-rose-600">
               {stats.activeDebts.toLocaleString()} UZS
             </h2>
             <p className="text-[10px] text-rose-300 mt-2 uppercase">
-              Mavjud nasiyalar
+              Qolgan nasiyalar
             </p>
           </div>
 
@@ -136,6 +165,24 @@ export default function Dashboard() {
             <h2 className="text-2xl font-black text-slate-900">
               {stats.totalSales.toLocaleString()} UZS
             </h2>
+            <p className="text-[10px] text-slate-400 mt-2 uppercase">
+              Naqd + karta + nasiya
+            </p>
+          </div>
+
+          <div className={cardClass}>
+            <div className="w-12 h-12 bg-yellow-50 rounded-2xl flex items-center justify-center text-yellow-500 mb-6">
+              <Banknote size={24} />
+            </div>
+            <p className="text-[10px] uppercase text-slate-400 mb-1">
+              Kutilayotgan Umumiy Pul
+            </p>
+            <h2 className="text-2xl font-black text-slate-900">
+              {stats.totalExpectedMoney.toLocaleString()} UZS
+            </h2>
+            <p className="text-[10px] text-yellow-500 mt-2 uppercase">
+              Kelgan pul + qolgan qarzlar
+            </p>
           </div>
 
           <div className="bg-slate-900 p-8 rounded-[3rem] shadow-xl text-white">
@@ -143,13 +190,13 @@ export default function Dashboard() {
               <Wallet size={24} />
             </div>
             <p className="text-[10px] uppercase text-slate-500 mb-1">
-              Haqiqiy Foyda
+              Umumiy Foyda
             </p>
             <h2 className="text-2xl font-black text-emerald-400">
               {stats.totalProfit.toLocaleString()} UZS
             </h2>
             <p className="text-[9px] mt-2 text-slate-500 uppercase">
-              Tannarxdan tashqari
+              Naqd + karta + nasiya foydasi
             </p>
           </div>
         </div>
