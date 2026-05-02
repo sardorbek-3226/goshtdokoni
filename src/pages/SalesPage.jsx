@@ -330,45 +330,99 @@ export default function SalesPage() {
       alert("Brauzerda oyna ochishga ruxsat bering");
     }
   };
-
+  const decreaseWarehouseStock = (cart) => {
+    const localStock = JSON.parse(localStorage.getItem("warehouse_backup") || "[]");
+  
+    const updatedStock = localStock.map((stock) => {
+      const soldItem = cart.find(
+        (item) =>
+          String(item.productId || item.id) === String(stock.productId || stock.id)
+      );
+  
+      if (!soldItem) return stock;
+  
+      const soldQty = Number(
+        soldItem.qty || soldItem.quantityKg || soldItem.weight || 0
+      );
+  
+      return {
+        ...stock,
+        currentStock: Math.max(
+          0,
+          Number(stock.currentStock || 0) - soldQty
+        ),
+      };
+    });
+  
+    localStorage.setItem("warehouse_backup", JSON.stringify(updatedStock));
+  };
   // 2. SOTUVNI YAKUNLASH FUNKSIYASI
   const handleCompleteSale = async () => {
     if (!cart || cart.length === 0) {
       return toast.error("Savat bo'sh!");
     }
-
+  
+    const decreaseWarehouseStock = (cartItems) => {
+      const localStock = JSON.parse(
+        localStorage.getItem("warehouse_backup") || "[]"
+      );
+  
+      const updatedStock = localStock.map((stock) => {
+        const soldItem = cartItems.find(
+          (item) =>
+            String(item.productId || item.id) ===
+            String(stock.productId || stock.id)
+        );
+  
+        if (!soldItem) return stock;
+  
+        const soldQty = Number(
+          soldItem.qty || soldItem.quantityKg || soldItem.weight || 0
+        );
+  
+        return {
+          ...stock,
+          currentStock: Math.max(
+            0,
+            Number(stock.currentStock || 0) - soldQty
+          ),
+        };
+      });
+  
+      localStorage.setItem("warehouse_backup", JSON.stringify(updatedStock));
+    };
+  
     try {
       setIsSubmitting(true);
-
+  
       const currentTotalAmount = cart.reduce(
         (sum, item) => sum + Number(item.price || 0) * Number(item.qty || 0),
         0
       );
-
+  
       const totalCost = cart.reduce(
         (sum, item) => sum + Number(item.cost || 0) * Number(item.qty || 0),
         0
       );
-
+  
       const saleId = Date.now();
-
-      // 🔥 HAR DOIM QARZNI TEKSHIRAMIZ (naqd/karta bo‘lsa ham)
+  
       const debts = JSON.parse(localStorage.getItem("debts") || "[]");
-
+  
       const name = customerName.trim().toLowerCase();
       const phone = customerPhone.replace(/\s+/g, "").trim();
-
+  
       const existingIndex = debts.findIndex((d) => {
         const dName = String(d.customerName || d.name || "")
           .trim()
           .toLowerCase();
-
+  
         return dName === name;
       });
-
+  
       let oldDebt = 0;
       let totalDebt = 0;
-
+  
       if (existingIndex >= 0) {
         oldDebt = Number(
           debts[existingIndex].remainingDebt ||
@@ -376,20 +430,19 @@ export default function SalesPage() {
             0
         );
       }
-
-      // 🔥 faqat nasiya bo‘lsa qarzga qo‘shiladi
+  
       if (paymentMethod === "nasiya") {
         if (!customerName.trim()) {
           return toast.error("Nasiya uchun mijoz ismini kiriting!");
         }
-
+  
         if (!customerPhone.trim()) {
           return toast.error("Nasiya uchun telefon raqam kiriting!");
         }
-
+  
         if (existingIndex >= 0) {
           totalDebt = oldDebt + currentTotalAmount;
-
+  
           debts[existingIndex] = {
             ...debts[existingIndex],
             customerName: customerName,
@@ -401,7 +454,7 @@ export default function SalesPage() {
           };
         } else {
           totalDebt = currentTotalAmount;
-
+  
           debts.push({
             id: saleId,
             customerName: customerName,
@@ -411,13 +464,12 @@ export default function SalesPage() {
             items: [...cart],
           });
         }
-
+  
         localStorage.setItem("debts", JSON.stringify(debts));
       } else {
-        // 🔥 naqd/karta bo‘lsa qarz qo‘shilmaydi
         totalDebt = oldDebt;
       }
-
+  
       const saleData = {
         id: saleId,
         date: new Date().toISOString(),
@@ -430,17 +482,19 @@ export default function SalesPage() {
         totalDebt,
         items: cart,
       };
-
+  
       const currentSales = JSON.parse(
         localStorage.getItem("sales_history") || "[]"
       );
-
+  
       localStorage.setItem(
         "sales_history",
         JSON.stringify([...currentSales, saleData])
       );
-
-      // 🔥 CHECKGA QARZNI UZATAMIZ
+  
+      // ✅ SOTILGANDAN KEYIN OMBORDAN AYIRADI
+      decreaseWarehouseStock(cart);
+  
       printReceipt({
         id: saleId,
         customerName: saleData.customerName,
@@ -450,14 +504,14 @@ export default function SalesPage() {
         oldDebt,
         totalDebt,
       });
-
+  
       setCart([]);
       setCustomerName("");
       setCustomerPhone("");
       setPaymentMethod("naqd");
       setView("list");
-
-      toast.success("Sotuv yakunlandi!");
+  
+      toast.success("Sotuv yakunlandi! Ombordan mahsulot ayrildi.");
       loadData();
     } catch (err) {
       console.error(err);
