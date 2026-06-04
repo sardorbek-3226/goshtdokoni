@@ -15,7 +15,7 @@ export default function LoginPage() {
     try {
       const res = await apiService.login(form);
       
-      // Har qanday response formatidan tokenni sug'urib olish
+
       const token = res?.token || res?.data?.token || res?.user_token || res?.access_token;
 
       if (token) {
