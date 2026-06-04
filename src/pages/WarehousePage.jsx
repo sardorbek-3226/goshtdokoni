@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { apiService } from "../api/api";
 import { toast } from "react-hot-toast";
+import { apiService } from "../api/api";
+
 import {
   Package,
   Plus,
@@ -11,179 +12,219 @@ import {
 } from "lucide-react";
 
 export default function WarehousePage() {
-  const [products, setProducts] = useState([]);
-  const [stock, setStock] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  const [searchTerm, setSearchTerm] = useState("");
+  // ================= STATE
+
+  const [products, setProducts] = useState([]);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  const [searchTerm, setSearchTerm] =
+    useState("");
 
   const [form, setForm] = useState({
     productId: "",
-    weight: "",
+    quantityKg: "",
   });
 
-  // =========================
-  // SAFE ARRAY NORMALIZER
-  // =========================
 
-  const normalizeArray = (res) => {
-    if (!res) return [];
 
-    if (Array.isArray(res)) return res;
-
-    if (Array.isArray(res.data)) return res.data;
-
-    if (Array.isArray(res.data?.data))
-      return res.data.data;
-
-    if (Array.isArray(res.items))
-      return res.items;
-
-    if (Array.isArray(res.result))
-      return res.result;
-
-    return [];
-  };
-
-  // =========================
-  // STOCK VALUE GETTER
-  // =========================
-
-  const getStockValue = (item) => {
-    if (!item) return 0;
-
-    return Number(
-      item.quantityKg ??
-      item.currentStock ??
-      item.quantity ??
-      item.stock ??
-      item.amount ??
-      item.data?.quantityKg ??
-      0
-    );
-  };
-
-  // =========================
-  // PRODUCTS
-  // =========================
+  // ================= LOAD PRODUCTS
 
   const loadProducts = async () => {
+
     try {
-      const res =
+
+      setLoading(true);
+
+      // PRODUCTS API
+      const productsRes =
         await apiService.getProducts();
 
       console.log(
         "PRODUCTS API:",
-        res
+        productsRes
       );
 
-      const data =
-        normalizeArray(res);
-
-      setProducts(data);
-
-    } catch (err) {
-
-      console.log(err);
-
-      toast.error(
-        "Mahsulotlarni yuklashda xato"
-      );
-    }
-  };
-
-  // =========================
-  // WAREHOUSE
-  // =========================
-
-  const loadWarehouse = async () => {
-    try {
-
-      const res =
+      // WAREHOUSE API
+      const warehouseRes =
         await apiService.getWarehouse();
 
       console.log(
         "WAREHOUSE API:",
-        res
+        warehouseRes
       );
 
-      const data =
-        normalizeArray(res);
+      // ARRAYGA O'TKAZISH
+      const productsData =
+        Array.isArray(productsRes)
+          ? productsRes
+          : productsRes?.data || [];
 
-      setStock(data);
+      const warehouseData =
+        Array.isArray(warehouseRes)
+          ? warehouseRes
+          : warehouseRes?.data || [];
+
+      // MERGE
+      const merged =
+        productsData.map((product) => {
+
+          const stock =
+            warehouseData.find(
+              (w) =>
+                String(
+                  w.productId ||
+                  w.id ||
+                  w.product?.id
+                ) ===
+                String(product.id)
+            );
+
+            return {
+
+              id: String(product.id),
+            
+              name:
+                product.name ||
+                "Nomsiz",
+            
+              category:
+                product.category ||
+                "Kategoriya",
+            
+              price: Number(
+                product.sotish ||
+                product.price ||
+                0
+              ),
+            
+              cost: Number(
+                product.tannarx ||
+                product.cost ||
+                0
+              ),
+            
+              currentStock: Number(
+                product.stockKg ||
+                stock?.stockKg ||
+                stock?.quantityKg ||
+                stock?.currentStock ||
+                stock?.stock ||
+                stock?.quantity ||
+                0
+              ),
+            };
+        });
+
+      console.log(
+        "MERGED DATA:",
+        merged
+      );
+
+      setProducts(merged);
 
     } catch (err) {
 
-      console.log(err);
+      console.log(
+        "LOAD ERROR:",
+        err
+      );
 
       toast.error(
-        "Warehouse yuklanmadi"
+        "Ma'lumotlarni yuklashda xato!"
       );
+
+    } finally {
+
+      setLoading(false);
+
     }
   };
 
-  // =========================
-  // LOAD DATA
-  // =========================
-  const loadData = async () => {
-    try {
-      setLoading(true);
-  
-      const productsRes = await apiService.getProducts();
-      console.log("PRODUCTS FROM API:", productsRes);
-  
-      const productsData = normalizeArray(productsRes);
-  
-      const formattedData = productsData.map((product) => ({
-        id: String(product.id),
-        name: product.name || "Nomsiz",
-        price: Number(product.sotish || 0),
-        cost: Number(product.tannarx || 0),
-        currentStock: Number(product.stockKg || 0), 
-      }));
-  
-      setProducts(formattedData);
-    } catch (err) {
-      console.log(err);
-      toast.error("Yuklashda xato");
-    } finally {
-      setLoading(false);
-    }
-  };
+
+
+  // ================= PAGE LOAD
+
   useEffect(() => {
-    loadData();
+
+    loadProducts();
+
   }, []);
 
-  // =========================
-  // MERGE PRODUCTS + STOCK
-  // =========================
 
-  const mergedProducts = products.map((product) => {
-    return {
-      id: product.id,
-  
-      // API-dan kelayotgan 'name' field
-      name: product.name || "Noma'lum",
-  
-      // API-dan kelayotgan 'sotish' field (string bo'lgani uchun Number ga o'giramiz)
-      price: Number(product.sotish || 0),
-  
-      // API-dan kelayotgan 'tannarx' field
-      cost: Number(product.tannarx || 0),
-  
-      // API-dan kelayotgan 'stockKg' field
-      currentStock: Number(product.stockKg || 0),
-    };
-  });
-  
-  console.log("YANGI MERGED PRODUCTS:", mergedProducts);
 
-  // =========================
-  // FILTER
-  // =========================
+
+  // ================= ADD STOCK
+
+  const handleAddStock = async (e) => {
+
+    e.preventDefault();
+
+    try {
+
+      if (
+        !form.productId ||
+        !form.quantityKg
+      ) {
+        return toast.error(
+          "Ma'lumotlarni to'ldiring"
+        );
+      }
+
+      setSubmitting(true);
+
+      await apiService.receiveStock({
+
+        productId:
+          form.productId,
+
+        quantityKg: Number(
+          form.quantityKg
+        ),
+      });
+
+      toast.success(
+        "Mahsulot omborga qo'shildi!"
+      );
+
+      setForm({
+        productId: "",
+        quantityKg: "",
+      });
+
+      // reload
+      await loadProducts();
+
+    } catch (err) {
+
+      console.log(
+        "ADD STOCK ERROR:",
+        err
+      );
+
+      toast.error(
+        "Qo'shishda xato"
+      );
+
+    } finally {
+
+      setSubmitting(false);
+
+    }
+  };
+
+
+
+
+  // ================= FILTER
 
   const filtered =
-    mergedProducts.filter((p) =>
+    products.filter((p) =>
       p.name
         ?.toLowerCase()
         .includes(
@@ -191,92 +232,48 @@ export default function WarehousePage() {
         )
     );
 
-  // =========================
-  // TOTAL
-  // =========================
+
+
+  // ================= TOTAL
 
   const totalStockValue =
     filtered.reduce(
-      (sum, p) => {
-
-        return (
-          sum +
+      (sum, p) =>
+        sum +
+        Number(
+          p.currentStock || 0
+        ) *
           Number(
-            p.currentStock || 0
-          ) *
-            Number(
-              p.cost || 0
-            )
-        );
-      },
+            p.cost || 0
+          ),
+
       0
     );
 
-  // =========================
-  // ADD STOCK
-  // =========================
 
-  const handleAddStock =
-    async (e) => {
 
-      e.preventDefault();
 
-      const weight =
-        parseFloat(form.weight);
-
-      if (
-        !form.productId ||
-        isNaN(weight) ||
-        weight <= 0
-      ) {
-        return toast.error(
-          "Ma'lumotlarni to‘g‘ri kiriting"
-        );
-      }
-
-      try {
-
-        await apiService.receiveStock({
-          productId:
-            form.productId,
-
-          quantityKg: weight,
-        });
-
-        toast.success(
-          "Yuk qo‘shildi"
-        );
-
-        setForm({
-          productId: "",
-          weight: "",
-        });
-
-        await loadWarehouse();
-
-      } catch (err) {
-
-        console.log(err);
-
-        toast.error(
-          "Qo‘shishda xato"
-        );
-      }
-    };
+  // ================= UI
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
+
+    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8 italic font-bold">
 
       <div className="max-w-7xl mx-auto space-y-8">
 
+
         {/* HEADER */}
 
-        <div className="bg-white p-6 rounded-[2rem] shadow-sm border flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
 
           <h1 className="text-xl font-black uppercase flex items-center gap-3">
+
             <Database className="text-emerald-500" />
+
             Ombor Boshqaruvi
+
           </h1>
+
 
           <div className="relative w-full md:w-80">
 
@@ -288,7 +285,7 @@ export default function WarehousePage() {
             <input
               type="text"
               placeholder="Qidirish..."
-              className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-2xl outline-none border"
+              className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-2xl outline-none border-2 border-transparent focus:border-emerald-500"
               value={searchTerm}
               onChange={(e) =>
                 setSearchTerm(
@@ -296,37 +293,45 @@ export default function WarehousePage() {
                 )
               }
             />
+
           </div>
+
         </div>
 
+
+
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
 
           {/* LEFT */}
 
           <div className="lg:col-span-4">
 
-            <div className="bg-white p-8 rounded-[2rem] shadow-sm border">
+            <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-xl">
 
-              <h2 className="font-black uppercase mb-6 flex items-center gap-2">
+              <h2 className="font-black uppercase italic mb-6 text-sm flex items-center gap-2">
+
                 <ArrowDownCircle
                   size={18}
                   className="text-emerald-500"
                 />
+
                 Yangi Kirim
+
               </h2>
 
+
               <form
-                onSubmit={
-                  handleAddStock
-                }
+                onSubmit={handleAddStock}
                 className="space-y-5"
               >
 
+                {/* SELECT */}
+
                 <select
-                  className="w-full p-4 rounded-2xl border bg-slate-50"
-                  value={
-                    form.productId
-                  }
+                  className="w-full p-4 bg-slate-50 rounded-2xl outline-none"
+                  value={form.productId}
                   onChange={(e) =>
                     setForm({
                       ...form,
@@ -335,58 +340,91 @@ export default function WarehousePage() {
                     })
                   }
                 >
+
                   <option value="">
                     Mahsulot tanlang
                   </option>
 
                   {products.map((p) => (
+
                     <option
                       key={p.id}
                       value={p.id}
                     >
                       {p.name}
                     </option>
+
                   ))}
+
                 </select>
+
+
+
+                {/* INPUT */}
 
                 <input
                   type="number"
-                  step="0.1"
                   placeholder="KG"
-                  className="w-full p-4 rounded-2xl border bg-slate-50"
-                  value={form.weight}
+                  className="w-full p-5 bg-slate-50 rounded-3xl outline-none text-center text-2xl font-black"
+                  value={form.quantityKg}
                   onChange={(e) =>
                     setForm({
                       ...form,
-                      weight:
+                      quantityKg:
                         e.target.value,
                     })
                   }
                 />
 
-                <button className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all">
 
-                  <Plus size={18} />
 
-                  Qo‘shish
+                {/* BUTTON */}
+
+                <button
+                  disabled={submitting}
+                  className="w-full bg-slate-900 text-white py-5 rounded-[2rem] font-black uppercase flex items-center justify-center gap-3 hover:bg-emerald-600 transition-all"
+                >
+
+                  {submitting ? (
+
+                    <Loader2
+                      size={18}
+                      className="animate-spin"
+                    />
+
+                  ) : (
+
+                    <Plus size={18} />
+
+                  )}
+
+                  Omborga qo'shish
+
                 </button>
+
               </form>
+
             </div>
+
           </div>
+
+
+
+
 
           {/* RIGHT */}
 
           <div className="lg:col-span-8">
 
-            <div className="bg-white rounded-[2rem] shadow-sm border overflow-hidden">
+            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
 
-              <table className="w-full">
+              <table className="w-full text-left border-collapse">
 
                 <thead className="bg-slate-50">
 
-                  <tr className="text-xs uppercase text-slate-400">
+                  <tr className="text-[10px] uppercase text-slate-400 font-black">
 
-                    <th className="p-6 text-left">
+                    <th className="p-6">
                       Mahsulot
                     </th>
 
@@ -395,44 +433,56 @@ export default function WarehousePage() {
                     </th>
 
                     <th className="p-6 text-right">
-                      Zaxira
+                      Ombor
                     </th>
 
                     <th className="p-6 text-right">
                       Qiymati
                     </th>
+
                   </tr>
+
                 </thead>
 
-                <tbody>
+
+
+                <tbody className="divide-y divide-slate-50">
 
                   {loading ? (
 
                     <tr>
+
                       <td
                         colSpan="4"
                         className="p-20 text-center"
                       >
+
                         <Loader2 className="animate-spin mx-auto text-emerald-500" />
+
                       </td>
+
                     </tr>
 
                   ) : filtered.length === 0 ? (
 
                     <tr>
+
                       <td
                         colSpan="4"
-                        className="p-20 text-center"
+                        className="p-20 text-center text-slate-300"
                       >
-                        Ma'lumot topilmadi
+
+                        Mahsulot topilmadi
+
                       </td>
+
                     </tr>
 
                   ) : (
 
                     filtered.map((p) => {
 
-                      const value =
+                      const stockValue =
                         Number(
                           p.currentStock
                         ) *
@@ -444,58 +494,65 @@ export default function WarehousePage() {
 
                         <tr
                           key={p.id}
-                          className="border-t"
+                          className="hover:bg-slate-50"
                         >
 
                           <td className="p-6">
 
                             <div className="flex items-center gap-3">
 
-                              <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center">
+                              <Package size={18} />
 
-                                <Package size={18} />
+                              {p.name}
 
-                              </div>
-
-                              <span className="font-bold uppercase text-sm">
-                                {p.name}
-                              </span>
                             </div>
+
                           </td>
+
+
 
                           <td className="p-6 text-center">
 
-                            <div className="text-red-400 text-xs line-through">
-                              {p.cost.toLocaleString()} UZS
-                            </div>
+                            {Number(
+                              p.price
+                            ).toLocaleString()}
 
-                            <div className="text-emerald-600 font-black">
-                              {p.price.toLocaleString()} UZS
-                            </div>
+                            {" "}UZS
+
                           </td>
+
+
 
                           <td className="p-6 text-right">
 
-                            <div className="inline-block bg-emerald-50 text-emerald-600 px-4 py-2 rounded-2xl font-black text-xs">
-                              {Number(
-                                p.currentStock
-                              ).toFixed(1)} KG
-                            </div>
+                            {Number(
+                              p.currentStock
+                            ).toFixed(1)}
+
+                            {" "}KG
+
                           </td>
 
-                          <td className="p-6 text-right font-black">
 
-                            {value.toLocaleString()} UZS
+
+                          <td className="p-6 text-right">
+
+                            {stockValue.toLocaleString()}
+
+                            {" "}UZS
+
                           </td>
+
                         </tr>
                       );
                     })
                   )}
                 </tbody>
 
+
+
                 {!loading &&
-                  filtered.length >
-                    0 && (
+                  filtered.length > 0 && (
 
                   <tfoot className="bg-slate-900">
 
@@ -505,21 +562,34 @@ export default function WarehousePage() {
                         colSpan="3"
                         className="p-6 text-white font-black"
                       >
+
                         Jami qiymat
+
                       </td>
 
                       <td className="p-6 text-right text-emerald-400 font-black text-lg">
 
-                        {totalStockValue.toLocaleString()} UZS
+                        {totalStockValue.toLocaleString()}
+
+                        {" "}UZS
+
                       </td>
+
                     </tr>
+
                   </tfoot>
                 )}
+
               </table>
+
             </div>
+
           </div>
+
         </div>
+
       </div>
+
     </div>
   );
 }
