@@ -2,10 +2,10 @@ import axios from "axios";
 import { toast } from "react-hot-toast";
 import dotenv from 'dotenv';
 // const BASE_URL = "https://sifat-pmy2.onrender.com/api";
-const BASE_URL = process.env.BASE_URL;
-
+const VITE_BASE_URL = import.meta.env.VITE_BASE_URL;
+console.log(VITE_BASE_URL)
 const api = axios.create({
-  baseURL: BASE_URL,
+  baseURL: VITE_BASE_URL,
   headers: {
     "Content-Type": "application/json",
   },
