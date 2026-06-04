@@ -18,17 +18,12 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("user_token");
 
-  if (
-    token &&
-    token !== "undefined" &&
-    token !== "null"
-  ) {
+  if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
 
   return config;
 });
-
 
 // =========================
 // RESPONSE
@@ -247,21 +242,14 @@ export const apiService = {
 
 
   // ================= PRODUCTS
-
   getProducts: async () => {
     try {
-      const res = await api.get(
-        "/products"
-      );
-
-      return toArray(res).map(
-        normalizeProduct
-      );
+      const res = await api.get("/products");
+      return res.map(normalizeProduct);
     } catch {
       return [];
     }
   },
-
 
   addProduct: async (data) => {
     return api.post("/products", {
@@ -282,9 +270,24 @@ export const apiService = {
 
 getWarehouse: async () => {
   try {
-    const res = await api.get("/warehouse");
-    return Array.isArray(res) ? res : [];
+
+    const res = await api.get(
+      "/warehouse/current"
+    );
+
+    console.log("WAREHOUSE API:", res);
+
+    return Array.isArray(res)
+      ? res
+      : res?.data || [];
+
   } catch (err) {
+
+    console.log(
+      "WAREHOUSE ERROR:",
+      err
+    );
+
     return [];
   }
 },
